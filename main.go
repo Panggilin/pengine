@@ -237,11 +237,25 @@ func PostMyLocationProvider(c *gin.Context) {
 	var providerLocation ProviderLocation
 	c.Bind(&providerLocation)
 
-	if insert := db.QueryRow(`INSERT INTO providerlocation(provider_id, latitude, longitude)
+	var recProviderLocation ProviderLocation
+	err := dbmap.SelectOne(&recProviderLocation, "SELECT provider_id FROM providerlocation WHERE provider_id=$1",
+		providerLocation.ProviderId)
+
+	if err == nil {
+		// Already exists
+		if update := db.QueryRow("UPDATE providerlocation SET latitude=$1, longitude=$2 WHERE provider_id=$3",
+			providerLocation.Latitude, providerLocation.Longitude, providerLocation.ProviderId);
+		update != nil {
+			c.JSON(200, gin.H{"status":"success updated my location"})
+		}
+	} else {
+		// Not exists
+		if insert := db.QueryRow(`INSERT INTO providerlocation(provider_id, latitude, longitude)
 		VALUES($1, $2, $3)`,
-		providerLocation.ProviderId, providerLocation.Latitude, providerLocation.Longitude);
+			providerLocation.ProviderId, providerLocation.Latitude, providerLocation.Longitude);
 		insert != nil {
-		c.JSON(200, gin.H{"status":"success save my location"})
+			c.JSON(200, gin.H{"status":"success saved my location"})
+		}
 	}
 
 }
