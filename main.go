@@ -14,7 +14,7 @@ var db = initDb()
 var dbmap = initDbmap()
 
 func initDb() *sql.DB {
-	db, err := sql.Open("postgres", os.Getenv("DATABASE_PGLN_URL"))
+	db, err := sql.Open("postgres", os.Getenv("DATABASE_URL"))
 
 	checkErr(err, "Failed open db")
 	return db;
