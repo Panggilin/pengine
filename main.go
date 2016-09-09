@@ -8,6 +8,7 @@ import (
 	"log"
 
 	_ "github.com/lib/pq"
+	"strconv"
 )
 
 var db = initDb()
@@ -49,7 +50,8 @@ func main() {
 	v1 := r.Group("api/v1")
 	{
 		v1.GET("/providers", GetProviders)
-		v1.GET("/providers/near", GetNearProvider)
+		v1.GET("/providers/near", GetNearProviderForMap)
+		v1.GET("/providers/cat_near", GetNearProviderByType)
 		v1.GET("/providers/search", GetProvidersByKeyword)
 		v1.GET("/provider/cat/:cat_id", GetProvidersByCategory)
 		v1.GET("/provider/data/:id", GetProvider)
@@ -58,6 +60,7 @@ func main() {
 		v1.PUT("/provider/inactive", InActiveProvider)
 		v1.PUT("/provider/active", ActiveProvider)
 		v1.POST("/provider/mylocation", PostMyLocationProvider)
+		v1.POST("/jasa/create", PostCreateNewJasa)
 	}
 	r.Run(GetPort())
 
@@ -108,6 +111,28 @@ type KategoriJasa struct {
 	Jenis string `db:"jenis" json:"jenis"`
 }
 
+type UserLocation struct {
+	UserId int64 `db:"user_id" json:"user_id"`
+	Latitude float64 `db:"latitude" json:"latitude"`
+	Longitude float64 `db:"longitude" json:"longitude"`
+}
+
+type NearProviderForMap struct {
+	Id int64 `db:"id" json:"id"`
+	Nama string `db:"nama" json:"nama"`
+	JasaId int64 `db:"jasa_id" json:"jasa_id"`
+	JenisJasa string `db:"jenis_jasa" json:"jenis_jasa"`
+	Latitude float64 `db:"latitude" json:"latitude`
+	Longitude float64 `db:"longitude" json:"longitude"`
+	Distance float64 `db:"distance" json:"distance"`
+}
+
+type NearProviderByType struct {
+	JasaId int64 `db:"jasa_id" json:"jasa_id"`
+	JenisJasa string `db:"jenis_jasa" json:"jenis_jasa"`
+	CountJasaProvider int8	`db:"count_jasa_provider" json:"count_jasa_provider"`
+}
+
 type User struct {
 	Id        int64 `db:"id" json:"id"`
 	Firstname string `db:"firstname" json:"firstname"`
@@ -129,8 +154,49 @@ func GetProvider(c *gin.Context) {
 	// Get provider by id
 }
 
-func GetNearProvider(c *gin.Context) {
+func GetNearProviderForMap(c *gin.Context) {
 	// Get all provider that near 2KM from user
+	var lat float64
+	var long float64
+	lat, _ = strconv.ParseFloat(c.Query("lat"), 64)
+	long, _ = strconv.ParseFloat(c.Query("long"), 64)
+
+	var nearProviderForMap []NearProviderForMap
+	_, errNPM := dbmap.Select(&nearProviderForMap,
+		`SELECT pd.id as id, pd.nama as nama, kj.id as jasa_id, kj.jenis as jenis_jasa,
+		pl.latitude as latitude, pl.longitude as longitude,
+		earth_distance(ll_to_earth($1, $2), ll_to_earth(pl.latitude, pl.longitude)) AS distance
+		FROM providerlocation pl
+			JOIN providerdata pd on pd.id = pl.provider_id
+			JOIN kategorijasa kj on kj.id = pd.jasa_id
+		WHERE earth_distance(ll_to_earth($1, $2), ll_to_earth(pl.latitude, pl.longitude)) <= 2000
+		ORDER BY distance ASC`, lat, long)
+
+	var nearProviderByType []NearProviderByType
+	_, errNPT := dbmap.Select(&nearProviderByType,
+		 `SELECT jasa_id, jenis_jasa, count(jasa_id) as count_jasa_provider
+		 FROM (SELECT kj.id as jasa_id, kj.jenis as jenis_jasa,
+		 	earth_distance(ll_to_earth($1, $2), ll_to_earth(pl.latitude, pl.longitude)) as distance
+		 	FROM providerlocation pl
+		 		JOIN providerdata pd on pd.id = pl.provider_id
+		 		JOIN kategorijasa kj on kj.id = pd.jasa_id
+		 	WHERE earth_distance(ll_to_earth($1, $2), ll_to_earth(pl.latitude, pl.longitude)) <= 2000
+		 	ORDER BY distance ASC) as provider_by_location
+		 GROUP BY jasa_id, jenis_jasa
+		 ORDER BY jasa_id ASC`, lat, long)
+
+	if errNPM == nil && errNPT == nil {
+		c.JSON(200, gin.H{
+			"map" : nearProviderForMap,
+			"type" : nearProviderByType})
+	} else {
+		checkErr(errNPM, "Select failed NPM")
+		checkErr(errNPT, "Select failed NPT")
+	}
+}
+
+func GetNearProviderByType(c *gin.Context) {
+	// Get all provider by type?
 }
 
 func GetProvidersByCategory(c *gin.Context) {
@@ -257,6 +323,15 @@ func PostMyLocationProvider(c *gin.Context) {
 			c.JSON(200, gin.H{"status":"success saved my location"})
 		}
 	}
+}
 
+func PostCreateNewJasa(c *gin.Context) {
+	var kategoriJasa KategoriJasa
+	c.Bind(&kategoriJasa)
+
+	if insert := db.QueryRow("INSERT INTO kategorijasa(jenis) VALUES($1)", kategoriJasa.Jenis);
+		insert != nil {
+		c.JSON(200, gin.H{"status":"Success create new jenis jasa"})
+	}
 }
 
