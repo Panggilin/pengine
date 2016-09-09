@@ -192,7 +192,7 @@ func InActiveProvider(c *gin.Context) {
 	var providerAccount ProviderAccount
 	c.Bind(&providerAccount);
 
-	err := dbmap.SelectOne(&providerAccount, "SELECT id FROM provideraccount WHERE provider_id=$1",
+	err := dbmap.SelectOne(&providerAccount, "SELECT provider_id FROM provideraccount WHERE provider_id=$1",
 		providerAccount.ProviderId)
 
 	if err == nil {
@@ -215,7 +215,7 @@ func ActiveProvider(c *gin.Context) {
 	var providerAccount ProviderAccount
 	c.Bind(&providerAccount);
 
-	err := dbmap.SelectOne(&providerAccount, "SELECT id FROM provideraccount WHERE provider_id=$1",
+	err := dbmap.SelectOne(&providerAccount, "SELECT provider_id FROM provideraccount WHERE provider_id=$1",
 		providerAccount.ProviderId)
 
 	if err == nil {
