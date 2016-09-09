@@ -55,8 +55,8 @@ func main() {
 		v1.GET("/provider/data/:id", GetProvider)
 		v1.POST("/provider/create", PostCreateProvider)
 		v1.PUT("/provider/edit/:provider_id", UpdateProviderData)
-		v1.PUT("/provider/inactive/:provider_id", InActiveProvider)
-		v1.PUT("/provider/active/:provider_id", ActiveProvider)
+		v1.PUT("/provider/inactive", InActiveProvider)
+		v1.PUT("/provider/active", ActiveProvider)
 		v1.POST("/provider/mylocation", PostMyLocationProvider)
 	}
 	r.Run(GetPort())
@@ -157,8 +157,8 @@ func PostCreateProvider(c *gin.Context) {
 		var id int64
 		err := insert.Scan(&id)
 
-		insertAccount := db.QueryRow("INSERT INTO provideraccount(provider_id, email) VALUES($1, $2, $3)",
-			id, providerData.Email, 0)
+		insertAccount := db.QueryRow(`INSERT INTO provideraccount(provider_id, email, status)
+			VALUES($1, $2, $3)`, id, providerData.Email, 0)
 
 		if err == nil && insertAccount != nil {
 			content := &ProviderData {
@@ -189,13 +189,16 @@ func UpdateProviderData(c *gin.Context) {
 
 func InActiveProvider(c *gin.Context) {
 	// Inactive provider
-	provider_id := c.Params.ByName("provider_id")
-
 	var providerAccount ProviderAccount
-	err := dbmap.SelectOne(&providerAccount, "SELECT id FROM provideraccount WHERE provider_id=$1", provider_id)
+	c.Bind(&providerAccount);
+
+	err := dbmap.SelectOne(&providerAccount, "SELECT id FROM provideraccount WHERE provider_id=$1",
+		providerAccount.ProviderId)
 
 	if err == nil {
-		if update := db.QueryRow("UPDATE provideraccount SET status=$1 WHERE provider_id=$2", 0, provider_id);
+		if update := db.QueryRow("UPDATE provideraccount SET status=$1 WHERE provider_id=$2", 0,
+			providerAccount.ProviderId);
+
 		update != nil {
 			c.JSON(200, gin.H{"status":"update success"})
 		} else {
@@ -209,13 +212,15 @@ func InActiveProvider(c *gin.Context) {
 
 func ActiveProvider(c *gin.Context) {
 	// Active provider
-	provider_id := c.Params.ByName("provider_id")
-
 	var providerAccount ProviderAccount
-	err := dbmap.SelectOne(&providerAccount, "SELECT id FROM provideraccount WHERE provider_id=$1", provider_id)
+	c.Bind(&providerAccount);
+
+	err := dbmap.SelectOne(&providerAccount, "SELECT id FROM provideraccount WHERE provider_id=$1",
+		providerAccount.ProviderId)
 
 	if err == nil {
-		if update := db.QueryRow("UPDATE provideraccount SET status=$1 WHERE provider_id=$2", 1, provider_id);
+		if update := db.QueryRow("UPDATE provideraccount SET status=$1 WHERE provider_id=$2", 1,
+			providerAccount.ProviderId);
 			update != nil {
 			c.JSON(200, gin.H{"status":"update success"})
 		} else {
