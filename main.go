@@ -122,7 +122,7 @@ type NearProviderForMap struct {
 	Nama string `db:"nama" json:"nama"`
 	JasaId int64 `db:"jasa_id" json:"jasa_id"`
 	JenisJasa string `db:"jenis_jasa" json:"jenis_jasa"`
-	Latitude float64 `db:"latitude" json:"latitude`
+	Latitude float64 `db:"latitude" json:"latitude"`
 	Longitude float64 `db:"longitude" json:"longitude"`
 	Distance float64 `db:"distance" json:"distance"`
 }
