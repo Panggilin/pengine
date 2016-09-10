@@ -131,6 +131,7 @@ type NearProviderByType struct {
 	JasaId int64 `db:"jasa_id" json:"jasa_id"`
 	JenisJasa string `db:"jenis_jasa" json:"jenis_jasa"`
 	CountJasaProvider int8	`db:"count_jasa_provider" json:"count_jasa_provider"`
+	MinDistance float64 `db:"min_distance" json:"min_distance"`
 }
 
 type User struct {
@@ -174,7 +175,7 @@ func GetNearProviderForMap(c *gin.Context) {
 
 	var nearProviderByType []NearProviderByType
 	_, errNPT := dbmap.Select(&nearProviderByType,
-		 `SELECT jasa_id, jenis_jasa, count(jasa_id) as count_jasa_provider
+		 `SELECT jasa_id, jenis_jasa, COUNT(jasa_id) as count_jasa_provider, MIN(distance) as min_distance
 		 FROM (SELECT kj.id as jasa_id, kj.jenis as jenis_jasa,
 		 	earth_distance(ll_to_earth($1, $2), ll_to_earth(pl.latitude, pl.longitude)) as distance
 		 	FROM providerlocation pl
