@@ -36,6 +36,18 @@ func initDbmap() *gorp.DbMap {
 	dbmap.AddTableWithName(KategoriJasa{}, "kategorijasa").SetKeys(true, "Id")
 	checkErr(dbmap.CreateTablesIfNotExists(), "Create tables failed")
 
+	dbmap.AddTableWithName(ProviderPriceList{}, "providerpricelist").SetKeys(true, "Id")
+	checkErr(dbmap.CreateTablesIfNotExists(), "Create tables failed")
+
+	dbmap.AddTableWithName(ProviderRating{}, "providerrating").SetKeys(true, "Id")
+	checkErr(dbmap.CreateTablesIfNotExists(), "Create tables failed")
+
+	dbmap.AddTableWithName(ProviderGallery{}, "providergallery").SetKeys(true, "Id")
+	checkErr(dbmap.CreateTablesIfNotExists(), "Create tables failed")
+
+	dbmap.AddTableWithName(ProviderProfileImage{}, "providerprofileimage").SetKeys(true, "Id")
+	checkErr(dbmap.CreateTablesIfNotExists(), "Create tables failed")
+
 	return dbmap
 }
 
@@ -61,6 +73,13 @@ func main() {
 		v1.PUT("/provider/active", ActiveProvider)
 		v1.POST("/provider/mylocation", PostMyLocationProvider)
 		v1.POST("/jasa/create", PostCreateNewJasa)
+		v1.POST("/provider/price/add", PostAddProviderPriceList)
+		v1.GET("/provider/prices/:provider_id", GetProviderPriceList)
+		v1.GET("/price/data/:provider_id/:id", GetProviderPrice)
+		v1.PUT("/provider/price/edit", UpdateProviderPrice)
+		v1.POST("/provider/rating/add", PostAddedRating)
+		v1.GET("/rating/get/:provider_id", GetProviderRating)
+		v1.PUT("/provider/rating/edit", UpdateProviderRating)
 	}
 	r.Run(GetPort())
 
@@ -132,6 +151,34 @@ type NearProviderByType struct {
 	JenisJasa string `db:"jenis_jasa" json:"jenis_jasa"`
 	CountJasaProvider int8	`db:"count_jasa_provider" json:"count_jasa_provider"`
 	MinDistance float64 `db:"min_distance" json:"min_distance"`
+}
+
+type ProviderPriceList struct {
+	Id int64 `db:"id" json:"id"`
+	ProviderId int64 `db:"provider_id" json:"provider_id"`
+	ServiceName string `db:"service_name" json:"service_name"`
+	ServicePrice int64 `db:"service_price" json:"service_price"`
+	Negotiable int8 `db:"negotiable" json:"negotiable"`
+}
+
+type ProviderRating struct {
+	Id int64 `db:"id" json:"id"`
+	ProviderId int64 `db:"provider_id" json:"provider_id"`
+	UserId int64 `db:"user_id" json:"user_id"`
+	UserRating int8 `db:"user_rating" json:"user_rating"`
+}
+
+type ProviderGallery struct {
+	Id int64 `db:"id" json:"id"`
+	ProviderId int64 `db:"provider_id" json:"provider_id"`
+	Image string `db:"image" json:"image"`
+}
+
+type ProviderProfileImage struct {
+	Id int64 `db:"id" json:"id"`
+	ProviderId int64 `db:"provider_id" json:"provider_id"`
+	ProfilePict string `db:"profile_pict" json:"profile_pict"`
+	ProfileBg string `db:"profile_bg" json:"profile_bg"`
 }
 
 type User struct {
@@ -336,3 +383,141 @@ func PostCreateNewJasa(c *gin.Context) {
 	}
 }
 
+func PostAddProviderPriceList(c *gin.Context) {
+	var providerPriceItem ProviderPriceList
+	c.Bind(&providerPriceItem)
+
+	var recProvider ProviderData
+	err := dbmap.SelectOne(&recProvider, "SELECT * FROM providerdata WHERE id=$1",
+		providerPriceItem.ProviderId)
+
+	if err == nil {
+		if insert := db.QueryRow(`INSERT INTO providerpricelist(provider_id, service_name, service_price, negotiable)
+		VALUES($1, $2, $3, $4)`,
+			providerPriceItem.ProviderId,
+			providerPriceItem.ServiceName,
+			providerPriceItem.ServicePrice,
+			providerPriceItem.Negotiable);
+		insert != nil {
+			c.JSON(200, gin.H{"status":"Success add new price"})
+		}
+	} else {
+		checkErr(err, "Select failed")
+	}
+
+
+}
+
+func GetProviderPriceList(c *gin.Context) {
+	id := c.Params.ByName("provider_id")
+
+	var providerPriceList []ProviderPriceList
+	_, err := dbmap.Select(&providerPriceList, "SELECT * FROM providerpricelist WHERE provider_id=$1", id);
+
+	if err == nil {
+		c.JSON(200, gin.H{"data" : providerPriceList})
+	} else {
+		checkErr(err, "Select failed")
+	}
+}
+
+func GetProviderPrice(c *gin.Context) {
+	providerId := c.Params.ByName("provider_id")
+	id := c.Params.ByName("id")
+
+	var providerPrice ProviderPriceList
+
+	err := dbmap.SelectOne(&providerPrice, "SELECT * FROM providerpricelist WHERE id=$1 AND provider_id=$2", id,
+		providerId);
+
+	if err == nil {
+		c.JSON(200, providerPrice)
+	} else {
+		checkErr(err, "Select failed")
+	}
+}
+
+func UpdateProviderPrice(c *gin.Context) {
+	var providerPrice ProviderPriceList
+	c.Bind(&providerPrice)
+
+	var recProviderPrice ProviderPriceList
+	err := dbmap.SelectOne(&recProviderPrice, "SELECT * FROM providerpricelist WHERE provider_id=$1",
+		providerPrice.ProviderId)
+
+	if err == nil {
+		if update := db.QueryRow(`UPDATE providerpricelist SET service_name=$1, service_price=$2
+			WHERE provider_id=$3`, providerPrice.ServiceName, providerPrice.ServicePrice,
+			providerPrice.ProviderId);
+		update != nil {
+			c.JSON(200, gin.H{"status":"Update success"})
+		}
+	} else {
+		checkErr(err, "Select failed")
+	}
+}
+
+func PostAddedRating(c *gin.Context) {
+	var providerRating ProviderRating
+	c.Bind(&providerRating)
+
+	var recProvider ProviderData
+	errProvider := dbmap.SelectOne(&recProvider, "SELECT * FROM providerdata WHERE id=$1",
+		providerRating.ProviderId)
+
+	if errProvider == nil {
+
+		var recProviderRating ProviderRating
+		errRating := dbmap.SelectOne(&recProviderRating, `SELECT * FROM providerrating
+			WHERE user_id=$1 AND provider_id=$2`, providerRating.UserId, providerRating.ProviderId)
+
+		if errRating != nil {
+			if insert := db.QueryRow(`INSERT INTO providerrating(provider_id, user_id, user_rating)
+			VALUES($1, $2, $3)`,
+				providerRating.ProviderId,
+				providerRating.UserId,
+				providerRating.UserRating);
+			insert != nil {
+				c.JSON(200, gin.H{"status":"Success give rating"})
+			}
+		} else {
+			c.JSON(400, gin.H{"error":"Only can give rating once"})
+		}
+
+	} else {
+		checkErr(errProvider, "Select failed")
+	}
+}
+
+func GetProviderRating(c *gin.Context) {
+	providerId := c.Params.ByName("provider_id")
+
+	var providerRating []ProviderRating
+	_, err := dbmap.Select(&providerRating,"SELECT * FROM providerrating WHERE provider_id=$1", providerId)
+
+	if err == nil {
+		c.JSON(200, gin.H{"data" : providerRating})
+	} else {
+		checkErr(err, "Select failed")
+	}
+
+}
+
+func UpdateProviderRating(c *gin.Context) {
+	var providerRating ProviderRating
+	c.Bind(&providerRating)
+
+	var recProviderRating ProviderRating
+	err := dbmap.SelectOne(&recProviderRating, "SELECT * FROM providerrating WHERE provider_id=$1 AND user_id=$2",
+		providerRating.ProviderId, providerRating.UserId);
+
+	if err == nil {
+		if update := db.QueryRow("UPDATE providerrating SET user_rating=$1 WHERE provider_id=$2 AND user_id=$3",
+			providerRating.UserRating, providerRating.ProviderId, providerRating.UserId);
+		update != nil {
+			c.JSON(200, gin.H{"status":"update success"})
+		}
+	} else {
+		checkErr(err, "Select failed")
+	}
+}
