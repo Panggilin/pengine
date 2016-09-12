@@ -27,8 +27,8 @@
       <file leaf-file-name="main.go" pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/main.go">
           <provider selected="true" editor-type-id="text-editor">
-            <state vertical-scroll-proportion="0.5187166">
-              <caret line="511" column="66" selection-start-line="511" selection-start-column="66" selection-end-line="511" selection-end-column="66" />
+            <state vertical-scroll-proportion="0.14438502">
+              <caret line="229" column="33" selection-start-line="229" selection-start-column="33" selection-end-line="229" selection-end-column="33" />
               <folding>
                 <element signature="e#14#136#0" expanded="true" />
               </folding>
@@ -88,7 +88,7 @@
     </navigator>
     <panes>
       <pane id="PackagesPane" />
-      <pane id="Scratches" />
+      <pane id="Scope" />
       <pane id="ProjectPane">
         <subPane>
           <PATH>
@@ -109,7 +109,7 @@
           </PATH>
         </subPane>
       </pane>
-      <pane id="Scope" />
+      <pane id="Scratches" />
     </panes>
   </component>
   <component name="PropertiesComponent">
@@ -319,8 +319,8 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/main.go">
       <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="0.5187166">
-          <caret line="511" column="66" selection-start-line="511" selection-start-column="66" selection-end-line="511" selection-end-column="66" />
+        <state vertical-scroll-proportion="0.14438502">
+          <caret line="229" column="33" selection-start-line="229" selection-start-column="33" selection-end-line="229" selection-end-column="33" />
           <folding>
             <element signature="e#14#136#0" expanded="true" />
           </folding>
