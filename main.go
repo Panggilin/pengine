@@ -190,6 +190,8 @@ type ProviderBasicInfo struct {
 	Id int64 `db:"id" json:"id"`
 	Nama string `db:"nama" json:"nama"`
 	Alamat string `db:"alamat" json:"alamat"`
+	JasaId int8 `db:"jasa_id" json:"jasa_id"`
+	JenisJasa string `db:"jenis_jasa" json:"jenis_jasa"`
 }
 
 type User struct {
@@ -215,8 +217,8 @@ func GetProvider(c *gin.Context) {
 	// Get basic info
 	var providerBasicInfo ProviderBasicInfo
 	errBasicInfo := dbmap.SelectOne(&providerBasicInfo,
-		`SELECT pd.id as id, nama, alamat
-		FROM providerdata pd WHERE pd.id=$1`, providerId);
+		`SELECT pd.id as id, pd.nama, pd.alamat, pd.jasa_id, kj.jenis as jenis_jasa
+		FROM providerdata pd JOIN kategorijasa kj on kj.id = pd.jasa_id WHERE pd.id=$1`, providerId);
 
 	if errBasicInfo != nil {
 		checkErr(errBasicInfo, "Select basic info failed")
@@ -259,6 +261,8 @@ func GetProvider(c *gin.Context) {
 		"id" : providerBasicInfo.Id,
 		"nama": providerBasicInfo.Nama,
 		"alamat" : providerBasicInfo.Alamat,
+		"jasa_id" : providerBasicInfo.JasaId,
+		"jenis_jasa" : providerBasicInfo.JenisJasa,
 		"profile_pict" : profilePictUrl,
 		"profile_bg" : profileBgUrl,
 		"gallery" : providerGallery,
