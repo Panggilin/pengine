@@ -248,7 +248,7 @@ type PostTransaction struct {
 type PostTransactionDetail struct {
 	JasaId       int8 `json:"jasa_id"`
 	ServiceName  string `json:"service_name"`
-	ServicePrice int64 `json:"serive_price"`
+	ServicePrice int64 `json:"service_price"`
 	Qty          int8 `json:"qty"`
 	ModifiedDate int64 `json:"modified_date"`
 }
@@ -771,12 +771,13 @@ func PostNewOrder(c *gin.Context) {
 		postTransaction.ProviderId)
 
 	var user UserAccount
-	errUser := dbmap.SelectOne(&user, `SELECT * FROM user WHERE id=$1`, postTransaction.UserId)
+	errUser := dbmap.SelectOne(&user, `SELECT id FROM useraccount WHERE id=$1`, postTransaction.UserId)
 
 	if errProvider != nil {
 		checkErr(errProvider, "select failed")
 		c.JSON(400, gin.H{"error" : "Penyedia Jasa tidak terdaftar atau tidak aktif"})
 	} else if errUser != nil {
+		checkErr(errUser, "select failed")
 		c.JSON(400, gin.H{"error" : "User tidak terdaftar"})
 	} else {
 		if insert := db.QueryRow(`INSERT INTO ordervendor(provider_id,
@@ -793,6 +794,7 @@ func PostNewOrder(c *gin.Context) {
 		postTransaction.DestinationLat, postTransaction.DestinationLong, postTransaction.DestinationDesc,
 		postTransaction.Notes, postTransaction.PaymentMethod, postTransaction.OrderDate);
 			insert != nil {
+
 			var orderId int8
 			err := insert.Scan(&orderId)
 
@@ -809,13 +811,16 @@ func PostNewOrder(c *gin.Context) {
 
 					db.QueryRow(`INSERT INTO ordervendordetail(order_id,
 					jasa_id,
-					jasa_name,
-					jasa_price,
+					service_name,
+					service_price,
 					qty,
 					modified_date)
 					VALUES($1, $2, $3, $4, $5, $6)`,
-					orderVendorDetail.OrderId, orderVendorDetail.JasaId, orderVendorDetail.ServiceName,
-					orderVendorDetail.ServicePrice, orderVendorDetail.Qty,
+					orderVendorDetail.OrderId,
+						orderVendorDetail.JasaId,
+						orderVendorDetail.ServiceName,
+						orderVendorDetail.ServicePrice,
+						orderVendorDetail.Qty,
 						orderVendorDetail.ModifiedDate)
 				}
 
