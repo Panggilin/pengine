@@ -130,6 +130,11 @@ type ProviderLocation struct {
 	Longitude  float64 `db:"longitude" json:"longitude"`
 }
 
+type ProviderLatLng struct {
+	Latitude   float64 `db:"latitude" json:"latitude"`
+	Longitude  float64 `db:"longitude" json:"longitude"`
+}
+
 type KategoriJasa struct {
 	Id    int64 `db:"id" json:"id"`
 	Jenis string `db:"jenis" json:"jenis"`
@@ -218,7 +223,9 @@ func GetProvider(c *gin.Context) {
 	var providerBasicInfo ProviderBasicInfo
 	errBasicInfo := dbmap.SelectOne(&providerBasicInfo,
 		`SELECT pd.id as id, pd.nama, pd.alamat, pd.jasa_id, kj.jenis as jenis_jasa
-		FROM providerdata pd JOIN kategorijasa kj on kj.id = pd.jasa_id WHERE pd.id=$1`, providerId);
+		FROM providerdata pd
+		JOIN kategorijasa kj ON kj.id = pd.jasa_id
+		WHERE pd.id=$1`, providerId);
 
 	if errBasicInfo != nil {
 		checkErr(errBasicInfo, "Select basic info failed")
@@ -257,12 +264,21 @@ func GetProvider(c *gin.Context) {
 	if errPriceList != nil {
 	}
 
+	// get provider location
+	var providerLocation ProviderLatLng
+	errLocation := dbmap.SelectOne(&providerLocation, `SELECT latitude, longitude
+	FROM providerlocation pl WHERE pl.provider_id=$1`, providerId);
+
+	if errLocation != nil {
+	}
+
 	c.JSON(200, gin.H{
 		"id" : providerBasicInfo.Id,
 		"nama": providerBasicInfo.Nama,
 		"alamat" : providerBasicInfo.Alamat,
 		"jasa_id" : providerBasicInfo.JasaId,
 		"jenis_jasa" : providerBasicInfo.JenisJasa,
+		"location" : providerLocation,
 		"profile_pict" : profilePictUrl,
 		"profile_bg" : profileBgUrl,
 		"gallery" : providerGallery,

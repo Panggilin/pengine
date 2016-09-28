@@ -8,13 +8,16 @@
     <JAVADOC />
     <SOURCES />
     <excluded>
+      <root url="file://$USER_HOME$/IdeaProjects/src/gopkg.in/gorp.v1/.git" />
+      <root url="file://$USER_HOME$/IdeaProjects/src/github.com/lib/pq/.git" />
+      <root url="file://$USER_HOME$/IdeaProjects/src/github.com/golang/protobuf/proto/testdata" />
       <root url="file://$USER_HOME$/IdeaProjects/src/golang.org/x/net/html/testdata" />
-      <root url="file://$PROJECT_DIR$" />
       <root url="file://$USER_HOME$/IdeaProjects/src/github.com/stretchr/testify/.git" />
       <root url="file://$USER_HOME$/IdeaProjects/src/golang.org/x/crypto/ed25519/testdata" />
       <root url="file://$USER_HOME$/IdeaProjects/src/github.com/manucorporat/sse/.git" />
       <root url="file://$USER_HOME$/IdeaProjects/src/golang.org/x/crypto/ssh/testdata" />
       <root url="file://$USER_HOME$/IdeaProjects/src/golang.org/x/crypto/.git" />
+      <root url="file://$PROJECT_DIR$" />
       <root url="file://$USER_HOME$/IdeaProjects/src/gopkg.in/go-playground/validator.v8/.git" />
       <root url="file://$USER_HOME$/IdeaProjects/src/golang.org/x/net/html/charset/testdata" />
       <root url="file://$USER_HOME$/IdeaProjects/src/github.com/golang/protobuf/.git" />
@@ -25,9 +28,6 @@
       <root url="file://$USER_HOME$/IdeaProjects/src/github.com/gin-gonic/gin/.git" />
       <root url="file://$USER_HOME$/IdeaProjects/src/golang.org/x/net/http2/testdata" />
       <root url="file://$USER_HOME$/IdeaProjects/src/golang.org/x/crypto/sha3/testdata" />
-      <root url="file://$USER_HOME$/IdeaProjects/src/gopkg.in/gorp.v1/.git" />
-      <root url="file://$USER_HOME$/IdeaProjects/src/github.com/lib/pq/.git" />
-      <root url="file://$USER_HOME$/IdeaProjects/src/github.com/golang/protobuf/proto/testdata" />
     </excluded>
   </library>
 </component>
