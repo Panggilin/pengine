@@ -48,6 +48,15 @@ func initDbmap() *gorp.DbMap {
 	dbmap.AddTableWithName(ProviderProfileImage{}, "providerprofileimage").SetKeys(true, "Id")
 	checkErr(dbmap.CreateTablesIfNotExists(), "Create tables failed")
 
+	dbmap.AddTableWithName(OrderVendor{}, "ordervendor").SetKeys(true, "Id")
+	checkErr(dbmap.CreateTablesIfNotExists(), "Create tables failed")
+
+	dbmap.AddTableWithName(OrderVendorDetail{}, "ordervendordetail").SetKeys(true, "Id")
+	checkErr(dbmap.CreateTablesIfNotExists(), "Create tables failed")
+
+	dbmap.AddTableWithName(UserAccount{}, "useraccount").SetKeys(true, "Id")
+	checkErr(dbmap.CreateTablesIfNotExists(), "Create tables failed")
+
 	return dbmap
 }
 
@@ -85,6 +94,7 @@ func main() {
 		v1.GET("/gallery/data/:provider_id", GetListImageGallery)
 		v1.POST("/provider/profile/add", PostProfileProvider)
 		v1.GET("/profile/data/:provider_id", GetProfileProvider)
+		v1.POST("/order/new", PostNewOrder)
 	}
 	r.Run(GetPort())
 
@@ -199,20 +209,61 @@ type ProviderBasicInfo struct {
 	JenisJasa string `db:"jenis_jasa" json:"jenis_jasa"`
 }
 
-type User struct {
-	Id        int64 `db:"id" json:"id"`
-	Firstname string `db:"firstname" json:"firstname"`
-	Lastname  string `db:"lastname" json:"lastname"`
+type OrderVendor struct {
+	Id int8 `db:"id" json:"id"`
+	ProviderId int8 `db:"provider_id" json:"provider_id"`
+	UserId int8 `db:"user_id" json:"user_id"`
+	Destination string `db:"destination" json:"destination"`
+	DestinationLat float64 `db:"destination_lat" json:"destination_lat"`
+	DestinationLong float64 `db:"destination_long" json:"destination_long"`
+	DestinationDesc string `db:"destination_desc" json:"destination_desc"`
+	Notes string `db:"notes" json:"notes"`
+	PaymentMethod int `db:"payment_method" json:"payment_method"`
+	OrderDate int64 `db:"order_date" json:"order_date"`
+}
+
+type OrderVendorDetail struct {
+	Id           int8 `db:"id" json:"id"`
+	OrderId      int8 `db:"order_id" json:"order_id"`
+	JasaId       int8 `db:"jasa_id" json:"jasa_id"`
+	ServiceName  string `db:"service_name" json:"service_name"`
+	ServicePrice int64 `db:"service_price" json:"service_price"`
+	Qty          int8 `db:"qty" json:"qty"`
+	ModifiedDate int64 `db:"modified_date" json:"modified_date"`
+}
+
+type PostTransaction struct {
+	ProviderId int8 `json:"provider_id"`
+	UserId int8 `json:"user_id"`
+	Destination string `json:"destination"`
+	DestinationLat float64 `json:"destination_lat"`
+	DestinationLong float64 `json:"destination_long"`
+	DestinationDesc string `json:"destination_desc"`
+	Notes string `json:"notes"`
+	PaymentMethod int `json:"payment_method"`
+	Data []PostTransactionDetail `json:"data"`
+	OrderDate int64 `json:"order_date"`
+}
+
+type PostTransactionDetail struct {
+	JasaId       int8 `json:"jasa_id"`
+	ServiceName  string `json:"service_name"`
+	ServicePrice int64 `json:"serive_price"`
+	Qty          int8 `json:"qty"`
+	ModifiedDate int64 `json:"modified_date"`
+}
+
+type UserAccount struct {
+	Id int8 `db:"id" json:"id"`
+	FirstName string `db:"first_name" json:"first_name"`
+	LastName string `db:"last_name" json:"last_name"`
+	Email string `db:"email" json:"email"`
+	DeviceToken string `db:"device_token" json:"device_token"`
+	JoinDate int64 `db:"join_date" json:"join_date"`
 }
 
 func GetProviders(c *gin.Context) {
 	// Get all list providers
-	type Users []User
-	var users = Users{
-		User{Id: 1, Firstname: "Oliver", Lastname: "Queen"},
-		User{Id: 2, Firstname: "Malcom", Lastname: "Merlyn"},
-	}
-	c.JSON(200, users)
 }
 
 func GetProvider(c *gin.Context) {
@@ -708,5 +759,72 @@ func PostProfileProvider(c *gin.Context) {
 
 	} else {
 		checkErr(err, "Select failed")
+	}
+}
+
+func PostNewOrder(c *gin.Context) {
+	var postTransaction PostTransaction
+	c.Bind(&postTransaction)
+
+	var providerAccount ProviderAccount
+	errProvider := dbmap.SelectOne(&providerAccount, `SELECT provider_id FROM provideraccount WHERE provider_id=$1`,
+		postTransaction.ProviderId)
+
+	var user UserAccount
+	errUser := dbmap.SelectOne(&user, `SELECT * FROM user WHERE id=$1`, postTransaction.UserId)
+
+	if errProvider != nil {
+		checkErr(errProvider, "select failed")
+		c.JSON(400, gin.H{"error" : "Penyedia Jasa tidak terdaftar atau tidak aktif"})
+	} else if errUser != nil {
+		c.JSON(400, gin.H{"error" : "User tidak terdaftar"})
+	} else {
+		if insert := db.QueryRow(`INSERT INTO ordervendor(provider_id,
+		user_id,
+		destination,
+		destination_lat,
+		destination_long,
+		destination_desc,
+		notes,
+		payment_method,
+		order_date)
+		VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING id`,
+		postTransaction.ProviderId, postTransaction.UserId, postTransaction.Destination,
+		postTransaction.DestinationLat, postTransaction.DestinationLong, postTransaction.DestinationDesc,
+		postTransaction.Notes, postTransaction.PaymentMethod, postTransaction.OrderDate);
+			insert != nil {
+			var orderId int8
+			err := insert.Scan(&orderId)
+
+			if  err == nil {
+				for i := 0; i < len(postTransaction.Data); i++ {
+					orderVendorDetail := &OrderVendorDetail{
+						OrderId: orderId,
+						JasaId: postTransaction.Data[i].JasaId,
+						ServiceName: postTransaction.Data[i].ServiceName,
+						ServicePrice: postTransaction.Data[i].ServicePrice,
+						Qty: postTransaction.Data[i].Qty,
+						ModifiedDate: postTransaction.Data[i].ModifiedDate,
+					}
+
+					db.QueryRow(`INSERT INTO ordervendordetail(order_id,
+					jasa_id,
+					jasa_name,
+					jasa_price,
+					qty,
+					modified_date)
+					VALUES($1, $2, $3, $4, $5, $6)`,
+					orderVendorDetail.OrderId, orderVendorDetail.JasaId, orderVendorDetail.ServiceName,
+					orderVendorDetail.ServicePrice, orderVendorDetail.Qty,
+						orderVendorDetail.ModifiedDate)
+				}
+
+				// send notification to vendor
+
+				c.JSON(200,  gin.H{"status":"Success order"})
+			} else {
+				checkErr(err, "Insert transaction failed")
+			}
+		}
 	}
 }
