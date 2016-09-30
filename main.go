@@ -72,9 +72,8 @@ func main() {
 	{
 		v1.GET("/providers", GetProviders)
 		v1.GET("/providers/near", GetNearProviderForMap)
-		v1.GET("/providers/cat_near", GetNearProviderByType)
 		v1.GET("/providers/search", GetProvidersByKeyword)
-		v1.GET("/provider/cat/:cat_id", GetProvidersByCategory)
+		v1.GET("/provider/jasa/:jasa_id", GetProvidersByCategory)
 		v1.GET("/provider/data/:id", GetProvider)
 		v1.POST("/provider/create", PostCreateProvider)
 		v1.PUT("/provider/edit/:provider_id", UpdateProviderData)
@@ -141,8 +140,8 @@ type ProviderLocation struct {
 }
 
 type ProviderLatLng struct {
-	Latitude   float64 `db:"latitude" json:"latitude"`
-	Longitude  float64 `db:"longitude" json:"longitude"`
+	Latitude  float64 `db:"latitude" json:"latitude"`
+	Longitude float64 `db:"longitude" json:"longitude"`
 }
 
 type KategoriJasa struct {
@@ -202,24 +201,24 @@ type ProviderProfileImage struct {
 }
 
 type ProviderBasicInfo struct {
-	Id int64 `db:"id" json:"id"`
-	Nama string `db:"nama" json:"nama"`
-	Alamat string `db:"alamat" json:"alamat"`
-	JasaId int8 `db:"jasa_id" json:"jasa_id"`
+	Id        int64 `db:"id" json:"id"`
+	Nama      string `db:"nama" json:"nama"`
+	Alamat    string `db:"alamat" json:"alamat"`
+	JasaId    int8 `db:"jasa_id" json:"jasa_id"`
 	JenisJasa string `db:"jenis_jasa" json:"jenis_jasa"`
 }
 
 type OrderVendor struct {
-	Id int8 `db:"id" json:"id"`
-	ProviderId int8 `db:"provider_id" json:"provider_id"`
-	UserId int8 `db:"user_id" json:"user_id"`
-	Destination string `db:"destination" json:"destination"`
-	DestinationLat float64 `db:"destination_lat" json:"destination_lat"`
+	Id              int8 `db:"id" json:"id"`
+	ProviderId      int8 `db:"provider_id" json:"provider_id"`
+	UserId          int8 `db:"user_id" json:"user_id"`
+	Destination     string `db:"destination" json:"destination"`
+	DestinationLat  float64 `db:"destination_lat" json:"destination_lat"`
 	DestinationLong float64 `db:"destination_long" json:"destination_long"`
 	DestinationDesc string `db:"destination_desc" json:"destination_desc"`
-	Notes string `db:"notes" json:"notes"`
-	PaymentMethod int `db:"payment_method" json:"payment_method"`
-	OrderDate int64 `db:"order_date" json:"order_date"`
+	Notes           string `db:"notes" json:"notes"`
+	PaymentMethod   int `db:"payment_method" json:"payment_method"`
+	OrderDate       int64 `db:"order_date" json:"order_date"`
 }
 
 type OrderVendorDetail struct {
@@ -233,16 +232,16 @@ type OrderVendorDetail struct {
 }
 
 type PostTransaction struct {
-	ProviderId int8 `json:"provider_id"`
-	UserId int8 `json:"user_id"`
-	Destination string `json:"destination"`
-	DestinationLat float64 `json:"destination_lat"`
+	ProviderId      int8 `json:"provider_id"`
+	UserId          int8 `json:"user_id"`
+	Destination     string `json:"destination"`
+	DestinationLat  float64 `json:"destination_lat"`
 	DestinationLong float64 `json:"destination_long"`
 	DestinationDesc string `json:"destination_desc"`
-	Notes string `json:"notes"`
-	PaymentMethod int `json:"payment_method"`
-	Data []PostTransactionDetail `json:"data"`
-	OrderDate int64 `json:"order_date"`
+	Notes           string `json:"notes"`
+	PaymentMethod   int `json:"payment_method"`
+	Data            []PostTransactionDetail `json:"data"`
+	OrderDate       int64 `json:"order_date"`
 }
 
 type PostTransactionDetail struct {
@@ -254,12 +253,12 @@ type PostTransactionDetail struct {
 }
 
 type UserAccount struct {
-	Id int8 `db:"id" json:"id"`
-	FirstName string `db:"first_name" json:"first_name"`
-	LastName string `db:"last_name" json:"last_name"`
-	Email string `db:"email" json:"email"`
+	Id          int8 `db:"id" json:"id"`
+	FirstName   string `db:"first_name" json:"first_name"`
+	LastName    string `db:"last_name" json:"last_name"`
+	Email       string `db:"email" json:"email"`
 	DeviceToken string `db:"device_token" json:"device_token"`
-	JoinDate int64 `db:"join_date" json:"join_date"`
+	JoinDate    int64 `db:"join_date" json:"join_date"`
 }
 
 func GetProviders(c *gin.Context) {
@@ -336,7 +335,6 @@ func GetProvider(c *gin.Context) {
 		"price" : providerPriceList,
 	})
 
-
 }
 
 func GetNearProviderForMap(c *gin.Context) {
@@ -346,6 +344,14 @@ func GetNearProviderForMap(c *gin.Context) {
 	lat, _ = strconv.ParseFloat(c.Query("lat"), 64)
 	long, _ = strconv.ParseFloat(c.Query("long"), 64)
 
+	var searchDistance int64
+
+	if c.Query("distance") == nil {
+		searchDistance = 2000
+	} else {
+		searchDistance, _ = strconv.ParseInt(c.Query("distance"), 0, 64)
+	}
+
 	var nearProviderForMap []NearProviderForMap
 	_, errNPM := dbmap.Select(&nearProviderForMap,
 		`SELECT pd.id as id, pd.nama as nama, kj.id as jasa_id, kj.jenis as jenis_jasa,
@@ -354,8 +360,8 @@ func GetNearProviderForMap(c *gin.Context) {
 		FROM providerlocation pl
 			JOIN providerdata pd on pd.id = pl.provider_id
 			JOIN kategorijasa kj on kj.id = pd.jasa_id
-		WHERE earth_distance(ll_to_earth($1, $2), ll_to_earth(pl.latitude, pl.longitude)) <= 2000
-		ORDER BY distance ASC`, lat, long)
+		WHERE earth_distance(ll_to_earth($1, $2), ll_to_earth(pl.latitude, pl.longitude)) <= $3
+		ORDER BY distance ASC`, lat, long, searchDistance)
 
 	var nearProviderByType []NearProviderByType
 	_, errNPT := dbmap.Select(&nearProviderByType,
@@ -365,10 +371,10 @@ func GetNearProviderForMap(c *gin.Context) {
 			FROM providerlocation pl
 				JOIN providerdata pd on pd.id = pl.provider_id
 				JOIN kategorijasa kj on kj.id = pd.jasa_id
-			WHERE earth_distance(ll_to_earth($1, $2), ll_to_earth(pl.latitude, pl.longitude)) <= 2000
+			WHERE earth_distance(ll_to_earth($1, $2), ll_to_earth(pl.latitude, pl.longitude)) <= $3
 			ORDER BY distance ASC) as provider_by_location
 		GROUP BY jasa_id, jenis_jasa
-		ORDER BY jasa_id ASC`, lat, long)
+		ORDER BY jasa_id ASC`, lat, long, searchDistance)
 
 	if errNPM == nil && errNPT == nil {
 		c.JSON(200, gin.H{
@@ -384,12 +390,87 @@ func GetNearProviderByType(c *gin.Context) {
 	// Get all provider by type?
 }
 
-func GetProvidersByCategory(c *gin.Context) {
-	// Get all provider by category
+type ProviderByCat struct {
+	Id        int64 `db:"id" json:"id"`
+	Nama      string `db:"nama" json:"nama"`
+	Latitude  float64 `db:"latitude" json:"latitude"`
+	Longitude float64 `db:"longitude" json:"longitude"`
+	MinPrice  sql.NullInt64 `db:"min_price" json:"min_price"`
+	MaxPrice  sql.NullInt64 `db:"max_price" json:"max_price"`
+	Rating    sql.NullFloat64 `db:"rating" json:"rating"`
+	Distance  float64 `db:"distance" json:"distance"`
 }
 
-func GetProvidersByKeyword(c *gin.Context) {
-	// Get all provider by keyword
+type ListProviderByCat struct {
+	Id        int64 `db:"id" json:"id"`
+	Nama      string `db:"nama" json:"nama"`
+	Latitude  float64 `db:"latitude" json:"latitude"`
+	Longitude float64 `db:"longitude" json:"longitude"`
+	MinPrice  int64 `db:"min_price" json:"min_price"`
+	MaxPrice  int64 `db:"max_price" json:"max_price"`
+	Rating    float64 `db:"rating" json:"rating"`
+	Distance  float64 `db:"distance" json:"distance"`
+}
+
+func GetProvidersByCategory(c *gin.Context) {
+	// Get all provider by category
+	jasaId := c.Params.ByName("jasa_id")
+
+	var lat float64
+	var long float64
+	lat, _ = strconv.ParseFloat(c.Query("lat"), 64)
+	long, _ = strconv.ParseFloat(c.Query("long"), 64)
+
+	var searchDistance int64
+
+	if c.Query("distance") == nil {
+		searchDistance = 2000
+	} else {
+		searchDistance, _ = strconv.ParseInt(c.Query("distance"), 0, 64)
+	}
+
+	var providerByCat []ProviderByCat
+	_, err := dbmap.Select(&providerByCat, `
+	SELECT pd.id, pd.nama, pl.latitude, pl.longitude, min_price, max_price, rating,
+earth_distance(ll_to_earth($1, $2), ll_to_earth(pl.latitude, pl.longitude)) AS distance
+FROM providerdata pd join providerlocation pl on pl.provider_id = pd.id
+LEFT JOIN (
+	SELECT provider_id, MIN(service_price) as min_price, MAX(service_price) as max_price
+	FROM providerpricelist
+	GROUP BY provider_id) pp
+ON pp.provider_id = pd.id
+LEFT JOIN (
+	SELECT provider_id, ((sum_rating + 0.0)/count)::float as rating
+	FROM (
+		SELECT provider_id, count(*) as count, sum(user_rating) sum_rating
+		FROM providerrating group by provider_id) rating_counter) pr
+ON pr.provider_id = pd.id
+WHERE pd.jasa_id=$3
+	AND earth_distance(ll_to_earth($1, $2), ll_to_earth(pl.latitude, pl.longitude)) <= $4
+ORDER BY distance ASC;
+	`, lat, long, jasaId, searchDistance);
+
+	if err == nil {
+		//var s [...]interface{}
+		//for i:= 0; i < len(providerByCat); i++ {
+		//	s[i] = &ListProviderByCat{
+		//		Id: providerByCat[i].Id,
+		//		Nama: providerByCat[i].Nama,
+		//		Latitude: providerByCat[i].Latitude,
+		//		Longitude: providerByCat[i].Longitude,
+		//		MinPrice: providerByCat[i].MinPrice.Int64,
+		//		MaxPrice: providerByCat[i].MaxPrice.Int64,
+		//		Rating: providerByCat[i].Rating.Float64,
+		//		Distance: providerByCat[i].Distance,
+		//	}
+		//}
+		//
+		//c.JSON(200, gin.H{"data" : s})
+
+		c.JSON(200, gin.H{"data" : providerByCat})
+	} else {
+		checkErr(err, "Select failed")
+	}
 }
 
 func PostCreateProvider(c *gin.Context) {
@@ -738,9 +819,9 @@ func PostProfileProvider(c *gin.Context) {
 		if err == nil {
 			if update := db.QueryRow(`UPDATE providerprofileimage
 					SET profile_pict=$1, profile_bg=$2 WHERE provider_id=$3`,
-					profileProvider.ProfilePict,
-					profileProvider.ProfileBg,
-					profileProvider.ProviderId);
+				profileProvider.ProfilePict,
+				profileProvider.ProfileBg,
+				profileProvider.ProviderId);
 			update != nil {
 				c.JSON(200, gin.H{"status":"update success"})
 			}
@@ -748,14 +829,13 @@ func PostProfileProvider(c *gin.Context) {
 			if insert := db.QueryRow(`INSERT INTO
 				providerprofileimage(provider_id, profile_pict, profile_bg)
 				VALUES($1, $2, $3)`,
-					profileProvider.ProviderId,
-					profileProvider.ProfilePict,
-					profileProvider.ProfileBg);
+				profileProvider.ProviderId,
+				profileProvider.ProfilePict,
+				profileProvider.ProfileBg);
 			insert != nil {
 				c.JSON(200, gin.H{"status":"Insert new profile pict and bg"})
 			}
 		}
-
 
 	} else {
 		checkErr(err, "Select failed")
@@ -790,15 +870,15 @@ func PostNewOrder(c *gin.Context) {
 		payment_method,
 		order_date)
 		VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING id`,
-		postTransaction.ProviderId, postTransaction.UserId, postTransaction.Destination,
-		postTransaction.DestinationLat, postTransaction.DestinationLong, postTransaction.DestinationDesc,
-		postTransaction.Notes, postTransaction.PaymentMethod, postTransaction.OrderDate);
-			insert != nil {
+			postTransaction.ProviderId, postTransaction.UserId, postTransaction.Destination,
+			postTransaction.DestinationLat, postTransaction.DestinationLong, postTransaction.DestinationDesc,
+			postTransaction.Notes, postTransaction.PaymentMethod, postTransaction.OrderDate);
+		insert != nil {
 
 			var orderId int8
 			err := insert.Scan(&orderId)
 
-			if  err == nil {
+			if err == nil {
 				for i := 0; i < len(postTransaction.Data); i++ {
 					orderVendorDetail := &OrderVendorDetail{
 						OrderId: orderId,
@@ -816,7 +896,7 @@ func PostNewOrder(c *gin.Context) {
 					qty,
 					modified_date)
 					VALUES($1, $2, $3, $4, $5, $6)`,
-					orderVendorDetail.OrderId,
+						orderVendorDetail.OrderId,
 						orderVendorDetail.JasaId,
 						orderVendorDetail.ServiceName,
 						orderVendorDetail.ServicePrice,
@@ -826,7 +906,7 @@ func PostNewOrder(c *gin.Context) {
 
 				// send notification to vendor
 
-				c.JSON(200,  gin.H{"status":"Success order"})
+				c.JSON(200, gin.H{"status":"Success order"})
 			} else {
 				checkErr(err, "Insert transaction failed")
 			}
