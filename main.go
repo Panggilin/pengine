@@ -11,6 +11,8 @@ import (
 	"strconv"
 )
 
+// ========================= INITIALIZE
+
 var db = initDb()
 var dbmap = initDbmap()
 
@@ -106,6 +108,8 @@ func GetPort() string {
 	}
 	return ":" + port
 }
+
+// =============================== STRUCT
 
 type ProviderAccount struct {
 	Id         int64 `db:"id" json:"id"`
@@ -261,6 +265,30 @@ type UserAccount struct {
 	JoinDate    int64 `db:"join_date" json:"join_date"`
 }
 
+type ProviderByCat struct {
+	Id        int64 `db:"id" json:"id"`
+	Nama      string `db:"nama" json:"nama"`
+	Latitude  float64 `db:"latitude" json:"latitude"`
+	Longitude float64 `db:"longitude" json:"longitude"`
+	MinPrice  sql.NullInt64 `db:"min_price" json:"min_price"`
+	MaxPrice  sql.NullInt64 `db:"max_price" json:"max_price"`
+	Rating    sql.NullFloat64 `db:"rating" json:"rating"`
+	Distance  float64 `db:"distance" json:"distance"`
+}
+
+type ListProviderByCat struct {
+	Id        int64 `db:"id" json:"id"`
+	Nama      string `db:"nama" json:"nama"`
+	Latitude  float64 `db:"latitude" json:"latitude"`
+	Longitude float64 `db:"longitude" json:"longitude"`
+	MinPrice  int64 `db:"min_price" json:"min_price"`
+	MaxPrice  int64 `db:"max_price" json:"max_price"`
+	Rating    float64 `db:"rating" json:"rating"`
+	Distance  float64 `db:"distance" json:"distance"`
+}
+
+// ========================== FUNC
+
 func GetProviders(c *gin.Context) {
 	// Get all list providers
 }
@@ -346,7 +374,7 @@ func GetNearProviderForMap(c *gin.Context) {
 
 	var searchDistance int64
 
-	if c.Query("distance") == nil {
+	if c.Query("distance") == "" {
 		searchDistance = 2000
 	} else {
 		searchDistance, _ = strconv.ParseInt(c.Query("distance"), 0, 64)
@@ -386,32 +414,6 @@ func GetNearProviderForMap(c *gin.Context) {
 	}
 }
 
-func GetNearProviderByType(c *gin.Context) {
-	// Get all provider by type?
-}
-
-type ProviderByCat struct {
-	Id        int64 `db:"id" json:"id"`
-	Nama      string `db:"nama" json:"nama"`
-	Latitude  float64 `db:"latitude" json:"latitude"`
-	Longitude float64 `db:"longitude" json:"longitude"`
-	MinPrice  sql.NullInt64 `db:"min_price" json:"min_price"`
-	MaxPrice  sql.NullInt64 `db:"max_price" json:"max_price"`
-	Rating    sql.NullFloat64 `db:"rating" json:"rating"`
-	Distance  float64 `db:"distance" json:"distance"`
-}
-
-type ListProviderByCat struct {
-	Id        int64 `db:"id" json:"id"`
-	Nama      string `db:"nama" json:"nama"`
-	Latitude  float64 `db:"latitude" json:"latitude"`
-	Longitude float64 `db:"longitude" json:"longitude"`
-	MinPrice  int64 `db:"min_price" json:"min_price"`
-	MaxPrice  int64 `db:"max_price" json:"max_price"`
-	Rating    float64 `db:"rating" json:"rating"`
-	Distance  float64 `db:"distance" json:"distance"`
-}
-
 func GetProvidersByCategory(c *gin.Context) {
 	// Get all provider by category
 	jasaId := c.Params.ByName("jasa_id")
@@ -423,7 +425,7 @@ func GetProvidersByCategory(c *gin.Context) {
 
 	var searchDistance int64
 
-	if c.Query("distance") == nil {
+	if c.Query("distance") == "" {
 		searchDistance = 2000
 	} else {
 		searchDistance, _ = strconv.ParseInt(c.Query("distance"), 0, 64)
@@ -471,6 +473,10 @@ ORDER BY distance ASC;
 	} else {
 		checkErr(err, "Select failed")
 	}
+}
+
+func GetProvidersByKeyword(c *gin.Context) {
+	// Get all provider by keyword
 }
 
 func PostCreateProvider(c *gin.Context) {
