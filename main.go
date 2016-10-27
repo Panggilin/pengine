@@ -456,7 +456,7 @@ ORDER BY distance ASC;
 	`, lat, long, jasaId, searchDistance)
 
 	if err == nil {
-		listProviders := []ListProviderByCat{}
+		/*listProviders := []ListProviderByCat{}
 		for _, row := range providerByCat {
 			listProviderItem := ListProviderByCat{
 				Id:        row.Id,
@@ -469,9 +469,9 @@ ORDER BY distance ASC;
 				Distance:  row.Distance,
 			}
 			listProviders = append(listProviders, listProviderItem)
-		}
+		}*/
 
-		c.JSON(200, gin.H{"data": listProviders})
+		c.JSON(200, gin.H{"data": providerByCat})
 	} else {
 		checkErr(err, "Select failed")
 	}
