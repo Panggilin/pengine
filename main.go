@@ -61,6 +61,12 @@ func initDbmap() *gorp.DbMap {
 	dbmap.AddTableWithName(UserAccount{}, "useraccount").SetKeys(true, "Id")
 	checkErr(dbmap.CreateTablesIfNotExists(), "Create tables failed")
 
+	dbmap.AddTableWithName(OrderVendorJourney{}, "ordervendorjourney").SetKeys(true, "Id")
+	checkErr(dbmap.CreateTablesIfNotExists(), "Create tables failed")
+
+	dbmap.AddTableWithName(OrderVendorTracking{}, "ordervendortracking").SetKeys(true, "Id")
+	checkErr(dbmap.CreateTablesIfNotExists(), "Create tables failed")
+
 	return dbmap
 }
 
@@ -98,6 +104,8 @@ func main() {
 		v1.POST("/provider/profile/add", PostProfileProvider)
 		v1.GET("/profile/data/:provider_id", GetProfileProvider)
 		v1.POST("/order/new", PostNewOrder)
+		v1.POST("/order/status", PostNewOrderJourney)
+		v1.PUT("/order/tracking", UpdateOrderTracking)
 	}
 	r.Run(GetPort())
 
@@ -237,6 +245,19 @@ type OrderVendorDetail struct {
 	ModifiedDate int64  `db:"modified_date" json:"modified_date"`
 }
 
+type OrderVendorJourney struct {
+	Id      int8 `db:"id" json:"id"`
+	OrderId int8 `db:"order_id" json:"order_id"`
+	Status  int8 `db:"status"`
+}
+
+type OrderVendorTracking struct {
+	Id               int8    `db:"id" json:"id"`
+	OrderId          int8    `db:"order_id" json:"order_id"`
+	CurrentLatitude  float64 `db:"latitude" json:"latitude"`
+	CurrentLongitude float64 `db:"longitude" json:"longitude"`
+}
+
 type PostTransaction struct {
 	ProviderId      int8                    `json:"provider_id"`
 	UserId          int8                    `json:"user_id"`
@@ -315,7 +336,8 @@ func GetProvider(c *gin.Context) {
 
 	// Get profile pict
 	var profileProvider ProviderProfileImage
-	errProfilePict := dbmap.SelectOne(&profileProvider, `SELECT * FROM providerprofileimage WHERE provider_id=$1`,
+	errProfilePict := dbmap.SelectOne(&profileProvider,
+		`SELECT * FROM providerprofileimage WHERE provider_id=$1`,
 		providerId)
 
 	var profilePictUrl string
@@ -331,7 +353,8 @@ func GetProvider(c *gin.Context) {
 
 	// get images gallery
 	var providerGallery []ProviderGallery
-	_, errGallery := dbmap.Select(&providerGallery, `SELECT * FROM providergallery WHERE provider_id=$1`,
+	_, errGallery := dbmap.Select(&providerGallery,
+		`SELECT * FROM providergallery WHERE provider_id=$1`,
 		providerId)
 
 	if errGallery != nil {
@@ -339,7 +362,8 @@ func GetProvider(c *gin.Context) {
 
 	// get price list
 	var providerPriceList []ProviderPriceList
-	_, errPriceList := dbmap.Select(&providerPriceList, `SELECT * FROM providerpricelist WHERE provider_id=$1`,
+	_, errPriceList := dbmap.Select(&providerPriceList,
+		`SELECT * FROM providerpricelist WHERE provider_id=$1`,
 		providerId)
 
 	if errPriceList != nil {
@@ -347,8 +371,9 @@ func GetProvider(c *gin.Context) {
 
 	// get provider location
 	var providerLocation ProviderLatLng
-	errLocation := dbmap.SelectOne(&providerLocation, `SELECT latitude, longitude
-	FROM providerlocation pl WHERE pl.provider_id=$1`, providerId)
+	errLocation := dbmap.SelectOne(&providerLocation,
+		`SELECT latitude, longitude FROM providerlocation pl
+		WHERE pl.provider_id=$1`, providerId)
 
 	if errLocation != nil {
 	}
@@ -385,24 +410,29 @@ func GetNearProviderForMap(c *gin.Context) {
 
 	var nearProviderForMap []NearProviderForMap
 	_, errNPM := dbmap.Select(&nearProviderForMap,
-		`SELECT pd.id as id, pd.nama as nama, kj.id as jasa_id, kj.jenis as jenis_jasa,
-		pl.latitude as latitude, pl.longitude as longitude,
-		earth_distance(ll_to_earth($1, $2), ll_to_earth(pl.latitude, pl.longitude)) AS distance
+		`SELECT pd.id as id, pd.nama as nama, kj.id as jasa_id,
+		kj.jenis as jenis_jasa, pl.latitude as latitude, pl.longitude as longitude,
+		earth_distance(ll_to_earth($1, $2), ll_to_earth(pl.latitude, pl.longitude))
+		AS distance
 		FROM providerlocation pl
 			JOIN providerdata pd on pd.id = pl.provider_id
 			JOIN kategorijasa kj on kj.id = pd.jasa_id
-		WHERE earth_distance(ll_to_earth($1, $2), ll_to_earth(pl.latitude, pl.longitude)) <= $3
+		WHERE earth_distance(ll_to_earth($1, $2),
+		ll_to_earth(pl.latitude, pl.longitude)) <= $3
 		ORDER BY distance ASC`, lat, long, searchDistance)
 
 	var nearProviderByType []NearProviderByType
 	_, errNPT := dbmap.Select(&nearProviderByType,
-		`SELECT jasa_id, jenis_jasa, COUNT(jasa_id) as count_jasa_provider, MIN(distance) as min_distance
+		`SELECT jasa_id, jenis_jasa, COUNT(jasa_id) as count_jasa_provider,
+		MIN(distance) as min_distance
 		FROM (SELECT kj.id as jasa_id, kj.jenis as jenis_jasa,
-			earth_distance(ll_to_earth($1, $2), ll_to_earth(pl.latitude, pl.longitude)) as distance
+			earth_distance(ll_to_earth($1, $2),
+			ll_to_earth(pl.latitude, pl.longitude)) as distance
 			FROM providerlocation pl
 				JOIN providerdata pd on pd.id = pl.provider_id
 				JOIN kategorijasa kj on kj.id = pd.jasa_id
-			WHERE earth_distance(ll_to_earth($1, $2), ll_to_earth(pl.latitude, pl.longitude)) <= $3
+			WHERE earth_distance(ll_to_earth($1, $2),
+			ll_to_earth(pl.latitude, pl.longitude)) <= $3
 			ORDER BY distance ASC) as provider_by_location
 		GROUP BY jasa_id, jenis_jasa
 		ORDER BY jasa_id ASC`, lat, long, searchDistance)
@@ -437,10 +467,12 @@ func GetProvidersByCategory(c *gin.Context) {
 	var providerByCat []ProviderByCat
 	_, err := dbmap.Select(&providerByCat, `
 	SELECT pd.id, pd.nama, pl.latitude, pl.longitude, min_price, max_price, rating,
-earth_distance(ll_to_earth($1, $2), ll_to_earth(pl.latitude, pl.longitude)) AS distance
+earth_distance(ll_to_earth($1, $2), ll_to_earth(pl.latitude, pl.longitude))
+AS distance
 FROM providerdata pd join providerlocation pl on pl.provider_id = pd.id
 LEFT JOIN (
-	SELECT provider_id, MIN(service_price) as min_price, MAX(service_price) as max_price
+	SELECT provider_id, MIN(service_price) as min_price, MAX(service_price)
+	as max_price
 	FROM providerpricelist
 	GROUP BY provider_id) pp
 ON pp.provider_id = pd.id
@@ -451,7 +483,8 @@ LEFT JOIN (
 		FROM providerrating group by provider_id) rating_counter) pr
 ON pr.provider_id = pd.id
 WHERE pd.jasa_id=$3
-	AND earth_distance(ll_to_earth($1, $2), ll_to_earth(pl.latitude, pl.longitude)) <= $4
+	AND earth_distance(ll_to_earth($1, $2),
+	ll_to_earth(pl.latitude, pl.longitude)) <= $4
 ORDER BY distance ASC;
 	`, lat, long, jasaId, searchDistance)
 
@@ -486,17 +519,21 @@ func PostCreateProvider(c *gin.Context) {
 	var providerData ProviderData
 	c.Bind(&providerData)
 
-	if insert := db.QueryRow(`INSERT INTO providerdata(nama, email, phone_number, jasa_id, alamat, provinsi,
-		kabupaten, kelurahan, kode_pos, dokumen, join_date, modified_date) VALUES($1, $2, $3, $4, $5, $6, $7,
+	if insert := db.QueryRow(`INSERT INTO providerdata(nama, email,
+		phone_number, jasa_id, alamat, provinsi,
+		kabupaten, kelurahan, kode_pos, dokumen, join_date, modified_date)
+		VALUES($1, $2, $3, $4, $5, $6, $7,
 		$8, $9, $10, $11, $12) RETURNING id`,
-		providerData.Nama, providerData.Email, providerData.PhoneNumber, providerData.JasaId,
-		providerData.Alamat, providerData.Provinsi, providerData.Kabupaten, providerData.Kelurahan,
-		providerData.KodePos, providerData.Dokumen, providerData.JoinDate, providerData.ModifiedDate); insert != nil {
+		providerData.Nama, providerData.Email, providerData.PhoneNumber,
+		providerData.JasaId, providerData.Alamat, providerData.Provinsi,
+		providerData.Kabupaten, providerData.Kelurahan, providerData.KodePos,
+		providerData.Dokumen, providerData.JoinDate, providerData.ModifiedDate); insert != nil {
 
 		var id int64
 		err := insert.Scan(&id)
 
-		insertAccount := db.QueryRow(`INSERT INTO provideraccount(provider_id, email, status)
+		insertAccount := db.QueryRow(`INSERT INTO provideraccount(provider_id,
+			email, status)
 			VALUES($1, $2, $3)`, id, providerData.Email, 0)
 
 		if err == nil && insertAccount != nil {
@@ -531,11 +568,13 @@ func InActiveProvider(c *gin.Context) {
 	var providerAccount ProviderAccount
 	c.Bind(&providerAccount)
 
-	err := dbmap.SelectOne(&providerAccount, `SELECT provider_id FROM provideraccount WHERE provider_id=$1`,
+	err := dbmap.SelectOne(&providerAccount,
+		`SELECT provider_id FROM provideraccount WHERE provider_id=$1`,
 		providerAccount.ProviderId)
 
 	if err == nil {
-		if update := db.QueryRow(`UPDATE provideraccount SET status=$1 WHERE provider_id=$2`, 0,
+		if update := db.QueryRow(`UPDATE provideraccount SET status=$1
+			WHERE provider_id=$2`, 0,
 			providerAccount.ProviderId); update != nil {
 			c.JSON(200, gin.H{"status": "update success"})
 		} else {
@@ -552,11 +591,13 @@ func ActiveProvider(c *gin.Context) {
 	var providerAccount ProviderAccount
 	c.Bind(&providerAccount)
 
-	err := dbmap.SelectOne(&providerAccount, `SELECT provider_id FROM provideraccount WHERE provider_id=$1`,
+	err := dbmap.SelectOne(&providerAccount, `SELECT provider_id
+		FROM provideraccount WHERE provider_id=$1`,
 		providerAccount.ProviderId)
 
 	if err == nil {
-		if update := db.QueryRow(`UPDATE provideraccount SET status=$1 WHERE provider_id=$2`, 1,
+		if update := db.QueryRow(`UPDATE provideraccount SET status=$1
+			WHERE provider_id=$2`, 1,
 			providerAccount.ProviderId); update != nil {
 			c.JSON(200, gin.H{"status": "update success"})
 		} else {
@@ -574,20 +615,25 @@ func PostMyLocationProvider(c *gin.Context) {
 	c.Bind(&providerLocation)
 
 	var recProviderLocation ProviderLocation
-	err := dbmap.SelectOne(&recProviderLocation, `SELECT provider_id FROM providerlocation WHERE provider_id=$1`,
+	err := dbmap.SelectOne(&recProviderLocation, `SELECT provider_id
+		FROM providerlocation WHERE provider_id=$1`,
 		providerLocation.ProviderId)
 
 	if err == nil {
 		// Already exists
-		if update := db.QueryRow(`UPDATE providerlocation SET latitude=$1, longitude=$2 WHERE provider_id=$3`,
-			providerLocation.Latitude, providerLocation.Longitude, providerLocation.ProviderId); update != nil {
+		if update := db.QueryRow(`UPDATE providerlocation SET latitude=$1,
+			longitude=$2 WHERE provider_id=$3`,
+			providerLocation.Latitude, providerLocation.Longitude,
+			providerLocation.ProviderId); update != nil {
 			c.JSON(200, gin.H{"status": "success updated my location"})
 		}
 	} else {
 		// Not exists
-		if insert := db.QueryRow(`INSERT INTO providerlocation(provider_id, latitude, longitude)
+		if insert := db.QueryRow(`INSERT INTO
+			providerlocation(provider_id, latitude, longitude)
 		VALUES($1, $2, $3)`,
-			providerLocation.ProviderId, providerLocation.Latitude, providerLocation.Longitude); insert != nil {
+			providerLocation.ProviderId, providerLocation.Latitude,
+			providerLocation.Longitude); insert != nil {
 			c.JSON(200, gin.H{"status": "success saved my location"})
 		}
 	}
@@ -597,7 +643,8 @@ func PostCreateNewJasa(c *gin.Context) {
 	var kategoriJasa KategoriJasa
 	c.Bind(&kategoriJasa)
 
-	if insert := db.QueryRow(`INSERT INTO kategorijasa(jenis) VALUES($1)`, kategoriJasa.Jenis); insert != nil {
+	if insert := db.QueryRow(`INSERT INTO kategorijasa(jenis) VALUES($1)`,
+		kategoriJasa.Jenis); insert != nil {
 		c.JSON(200, gin.H{"status": "Success create new jenis jasa"})
 	}
 }
@@ -611,7 +658,8 @@ func PostAddProviderPriceList(c *gin.Context) {
 		providerPriceItem.ProviderId)
 
 	if err == nil {
-		if insert := db.QueryRow(`INSERT INTO providerpricelist(provider_id, service_name, service_price, negotiable)
+		if insert := db.QueryRow(`INSERT INTO providerpricelist(provider_id,
+			service_name, service_price, negotiable)
 		VALUES($1, $2, $3, $4)`,
 			providerPriceItem.ProviderId,
 			providerPriceItem.ServiceName,
@@ -629,7 +677,8 @@ func GetProviderPriceList(c *gin.Context) {
 	id := c.Params.ByName("provider_id")
 
 	var providerPriceList []ProviderPriceList
-	_, err := dbmap.Select(&providerPriceList, `SELECT * FROM providerpricelist WHERE provider_id=$1`, id)
+	_, err := dbmap.Select(&providerPriceList, `SELECT *
+		FROM providerpricelist WHERE provider_id=$1`, id)
 
 	if err == nil {
 		c.JSON(200, gin.H{"data": providerPriceList})
@@ -644,7 +693,8 @@ func GetProviderPrice(c *gin.Context) {
 
 	var providerPrice ProviderPriceList
 
-	err := dbmap.SelectOne(&providerPrice, `SELECT * FROM providerpricelist WHERE id=$1 AND provider_id=$2`, id,
+	err := dbmap.SelectOne(&providerPrice, `SELECT *
+		FROM providerpricelist WHERE id=$1 AND provider_id=$2`, id,
 		providerId)
 
 	if err == nil {
@@ -659,11 +709,13 @@ func UpdateProviderPrice(c *gin.Context) {
 	c.Bind(&providerPrice)
 
 	var recProviderPrice ProviderPriceList
-	err := dbmap.SelectOne(&recProviderPrice, `SELECT * FROM providerpricelist WHERE provider_id=$1`,
+	err := dbmap.SelectOne(&recProviderPrice, `SELECT * FROM providerpricelist
+		WHERE provider_id=$1`,
 		providerPrice.ProviderId)
 
 	if err == nil {
-		if update := db.QueryRow(`UPDATE providerpricelist SET service_name=$1, service_price=$2
+		if update := db.QueryRow(`UPDATE providerpricelist
+			SET service_name=$1, service_price=$2
 			WHERE provider_id=$3`, providerPrice.ServiceName, providerPrice.ServicePrice,
 			providerPrice.ProviderId); update != nil {
 			c.JSON(200, gin.H{"status": "Update success"})
@@ -678,17 +730,20 @@ func PostAddedRating(c *gin.Context) {
 	c.Bind(&providerRating)
 
 	var recProvider ProviderData
-	errProvider := dbmap.SelectOne(&recProvider, `SELECT * FROM providerdata WHERE id=$1`,
+	errProvider := dbmap.SelectOne(&recProvider, `SELECT * FROM providerdata
+		WHERE id=$1`,
 		providerRating.ProviderId)
 
 	if errProvider == nil {
 
 		var recProviderRating ProviderRating
-		errRating := dbmap.SelectOne(&recProviderRating, `SELECT * FROM providerrating
+		errRating := dbmap.SelectOne(&recProviderRating, `SELECT *
+			FROM providerrating
 			WHERE user_id=$1 AND provider_id=$2`, providerRating.UserId, providerRating.ProviderId)
 
 		if errRating != nil {
-			if insert := db.QueryRow(`INSERT INTO providerrating(provider_id, user_id, user_rating)
+			if insert := db.QueryRow(`INSERT
+				INTO providerrating(provider_id, user_id, user_rating)
 			VALUES($1, $2, $3)`,
 				providerRating.ProviderId,
 				providerRating.UserId,
@@ -708,7 +763,8 @@ func GetProviderRating(c *gin.Context) {
 	providerId := c.Params.ByName("provider_id")
 
 	var providerRating []ProviderRating
-	_, err := dbmap.Select(&providerRating, `SELECT * FROM providerrating WHERE provider_id=$1`, providerId)
+	_, err := dbmap.Select(&providerRating, `SELECT * FROM providerrating
+		WHERE provider_id=$1`, providerId)
 
 	if err == nil {
 		c.JSON(200, gin.H{"data": providerRating})
@@ -723,12 +779,15 @@ func UpdateProviderRating(c *gin.Context) {
 	c.Bind(&providerRating)
 
 	var recProviderRating ProviderRating
-	err := dbmap.SelectOne(&recProviderRating, `SELECT * FROM providerrating WHERE provider_id=$1 AND user_id=$2`,
+	err := dbmap.SelectOne(&recProviderRating, `SELECT * FROM providerrating
+		WHERE provider_id=$1 AND user_id=$2`,
 		providerRating.ProviderId, providerRating.UserId)
 
 	if err == nil {
-		if update := db.QueryRow(`UPDATE providerrating SET user_rating=$1 WHERE provider_id=$2 AND user_id=$3`,
-			providerRating.UserRating, providerRating.ProviderId, providerRating.UserId); update != nil {
+		if update := db.QueryRow(`UPDATE providerrating SET user_rating=$1
+			WHERE provider_id=$2 AND user_id=$3`,
+			providerRating.UserRating, providerRating.ProviderId,
+			providerRating.UserId); update != nil {
 			c.JSON(200, gin.H{"status": "update success"})
 		}
 	} else {
@@ -741,7 +800,8 @@ func PostProviderImageGallery(c *gin.Context) {
 	c.Bind(&providerGallery)
 
 	var recProvider ProviderData
-	err := dbmap.SelectOne(&recProvider, `SELECT * FROM providerdata WHERE id=$1`, providerGallery.ProviderId)
+	err := dbmap.SelectOne(&recProvider, `SELECT * FROM providerdata
+		WHERE id=$1`, providerGallery.ProviderId)
 
 	if err == nil {
 		if insert := db.QueryRow(`INSERT INTO providergallery(provider_id, image)
@@ -758,11 +818,13 @@ func DeleteImageGallery(c *gin.Context) {
 	c.Bind(&providerGallery)
 
 	var recProviderGallery ProviderGallery
-	err := dbmap.SelectOne(&recProviderGallery, `SELECT * FROM providergallery WHERE id=$1 AND
+	err := dbmap.SelectOne(&recProviderGallery, `SELECT * FROM providergallery
+		WHERE id=$1 AND
 		provider_id=$2`, providerGallery.Id, providerGallery.ProviderId)
 
 	if err == nil {
-		if delete := db.QueryRow(`DELETE FROM providergallery WHERE id=$1 AND provider_id=$2`,
+		if delete := db.QueryRow(`DELETE FROM providergallery
+			WHERE id=$1 AND provider_id=$2`,
 			providerGallery.Id, providerGallery.ProviderId); delete != nil {
 			c.JSON(200, gin.H{"status": "Delete success"})
 		}
@@ -775,7 +837,8 @@ func GetListImageGallery(c *gin.Context) {
 	providerId := c.Params.ByName("provider_id")
 
 	var providerGallery []ProviderGallery
-	_, err := dbmap.Select(&providerGallery, `SELECT * FROM providergallery WHERE provider_id=$1`, providerId)
+	_, err := dbmap.Select(&providerGallery, `SELECT * FROM providergallery
+		WHERE provider_id=$1`, providerId)
 
 	if err == nil {
 		c.JSON(200, gin.H{"data": providerGallery})
@@ -788,7 +851,8 @@ func GetProfileProvider(c *gin.Context) {
 	providerId := c.Params.ByName("provider_id")
 
 	var profileProvider ProviderProfileImage
-	err := dbmap.SelectOne(&profileProvider, `SELECT * FROM providerprofileimage WHERE provider_id=$1`,
+	err := dbmap.SelectOne(&profileProvider, `SELECT * FROM providerprofileimage
+		WHERE provider_id=$1`,
 		providerId)
 
 	if err == nil {
@@ -803,7 +867,8 @@ func PostProfileProvider(c *gin.Context) {
 	c.Bind(&profileProvider)
 
 	var recProvider ProviderData
-	err := dbmap.SelectOne(&recProvider, `SELECT * FROM providerdata WHERE id=$1`, profileProvider.ProviderId)
+	err := dbmap.SelectOne(&recProvider, `SELECT * FROM providerdata WHERE id=$1`,
+		profileProvider.ProviderId)
 
 	if err == nil {
 
@@ -840,11 +905,13 @@ func PostNewOrder(c *gin.Context) {
 	c.Bind(&postTransaction)
 
 	var providerAccount ProviderAccount
-	errProvider := dbmap.SelectOne(&providerAccount, `SELECT provider_id FROM provideraccount WHERE provider_id=$1`,
+	errProvider := dbmap.SelectOne(&providerAccount,
+		`SELECT provider_id FROM provideraccount WHERE provider_id=$1`,
 		postTransaction.ProviderId)
 
 	var user UserAccount
-	errUser := dbmap.SelectOne(&user, `SELECT id FROM useraccount WHERE id=$1`, postTransaction.UserId)
+	errUser := dbmap.SelectOne(&user, `SELECT id FROM useraccount WHERE id=$1`,
+		postTransaction.UserId)
 
 	if errProvider != nil {
 		checkErr(errProvider, "select failed")
@@ -863,14 +930,45 @@ func PostNewOrder(c *gin.Context) {
 		payment_method,
 		order_date)
 		VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING id`,
-			postTransaction.ProviderId, postTransaction.UserId, postTransaction.Destination,
-			postTransaction.DestinationLat, postTransaction.DestinationLong, postTransaction.DestinationDesc,
-			postTransaction.Notes, postTransaction.PaymentMethod, postTransaction.OrderDate); insert != nil {
+			postTransaction.ProviderId, postTransaction.UserId,
+			postTransaction.Destination, postTransaction.DestinationLat,
+			postTransaction.DestinationLong, postTransaction.DestinationDesc,
+			postTransaction.Notes, postTransaction.PaymentMethod,
+			postTransaction.OrderDate); insert != nil {
 
 			var orderId int8
 			err := insert.Scan(&orderId)
 
 			if err == nil {
+
+				// insert order journey
+				/* status
+				0 = Waiting confirmation
+				1 = Confirmed
+				2 = On the way
+				3 = Reach destination
+				4 = On working
+				5 = Complete
+				6 = Cancel
+				*/
+				orderVendorJourney := OrderVendorJourney{
+					OrderId: orderId,
+					Status:  0,
+				}
+
+				db.QueryRow(`INSERT INTO ordervendorjourney(order_id, status)
+			VALUES($1, $2)`, orderVendorJourney.OrderId, orderVendorJourney.Status)
+
+				// insert order tracking
+				orderTracking := OrderVendorTracking{
+					OrderId:          orderId,
+					CurrentLatitude:  0,
+					CurrentLongitude: 0,
+				}
+
+				db.QueryRow("INSERT INTO ordervendortracking(order_id, latitude, longitude) VALUES($1, $2, $3)",
+					orderTracking.OrderId, orderTracking.CurrentLatitude, orderTracking.CurrentLongitude)
+
 				for i := 0; i < len(postTransaction.Data); i++ {
 					orderVendorDetail := &OrderVendorDetail{
 						OrderId:      orderId,
@@ -903,5 +1001,45 @@ func PostNewOrder(c *gin.Context) {
 				checkErr(err, "Insert transaction failed")
 			}
 		}
+	}
+}
+
+func PostNewOrderJourney(c *gin.Context) {
+	var orderVendorJourney OrderVendorJourney
+	c.Bind(&orderVendorJourney)
+
+	if insert := db.QueryRow(`INSERT INTO ordervendorjourney(order_id, status)
+	VALUES($1, $2)`,
+		orderVendorJourney.OrderId, orderVendorJourney.Status); insert != nil {
+
+		c.JSON(200, gin.H{"status": "success"})
+	} else {
+		c.JSON(400, gin.H{"error": "Failed update order status"})
+	}
+
+}
+
+func UpdateOrderTracking(c *gin.Context) {
+	var orderVendorTracking OrderVendorTracking
+	c.Bind(&orderVendorTracking)
+
+	var recOrderVendorTracking OrderVendorTracking
+	err := dbmap.SelectOne(&recOrderVendorTracking, `SELECT id,
+		order_id FROM ordervendortracking
+		WHERE id=$1 AND order_id=$2`, orderVendorTracking.Id,
+		orderVendorTracking.OrderId)
+
+	if err == nil {
+		if update := db.QueryRow(`UPDATE ordervendortracking
+			SET latitude=$1, longitude=$2 WHERE
+			id=$3 AND order_id=$4`, orderVendorTracking.CurrentLatitude,
+			orderVendorTracking.CurrentLongitude,
+			recOrderVendorTracking.Id, orderVendorTracking.OrderId); update != nil {
+			c.JSON(200, gin.H{"status": "Success update current vendor location"})
+		} else {
+			c.JSON(400, gin.H{"error": "Failed update tracking record"})
+		}
+	} else {
+		c.JSON(400, gin.H{"error": "Record not found"})
 	}
 }
