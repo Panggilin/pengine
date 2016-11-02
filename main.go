@@ -8,12 +8,19 @@ import (
 	"github.com/gin-gonic/gin"
 	"gopkg.in/gorp.v1"
 
+	"github.com/dgrijalva/jwt-go"
+
 	"strconv"
 
 	_ "github.com/lib/pq"
+	"time"
+"strings"
 )
 
 // ========================= INITIALIZE
+
+/* Set up a global string for our secret */
+var mySigningKey = []byte("APIRI4008090121721000STDGTL")
 
 var db = initDb()
 var dbmap = initDbmap()
@@ -58,13 +65,19 @@ func initDbmap() *gorp.DbMap {
 	dbmap.AddTableWithName(OrderVendorDetail{}, "ordervendordetail").SetKeys(true, "Id")
 	checkErr(dbmap.CreateTablesIfNotExists(), "Create tables failed")
 
-	dbmap.AddTableWithName(UserAccount{}, "useraccount").SetKeys(true, "Id")
-	checkErr(dbmap.CreateTablesIfNotExists(), "Create tables failed")
-
 	dbmap.AddTableWithName(OrderVendorJourney{}, "ordervendorjourney").SetKeys(true, "Id")
 	checkErr(dbmap.CreateTablesIfNotExists(), "Create tables failed")
 
 	dbmap.AddTableWithName(OrderVendorTracking{}, "ordervendortracking").SetKeys(true, "Id")
+	checkErr(dbmap.CreateTablesIfNotExists(), "Create tables failed")
+
+	dbmap.AddTableWithName(UserAccount{}, "useraccount").SetKeys(true, "Id")
+	checkErr(dbmap.CreateTablesIfNotExists(), "Create tables failed")
+
+	dbmap.AddTableWithName(UserProfile{}, "userprofile").SetKeys(true, "UserId")
+	checkErr(dbmap.CreateTablesIfNotExists(), "Create tables failed")
+
+	dbmap.AddTableWithName(AuthToken{}, "authtoken").SetKeys(true, "Id")
 	checkErr(dbmap.CreateTablesIfNotExists(), "Create tables failed")
 
 	return dbmap
@@ -79,6 +92,12 @@ func checkErr(err error, msg string) {
 func main() {
 	r := gin.Default()
 	v1 := r.Group("api/v1")
+	{
+		v1.POST("/user/signin/email", PostSignInEmail)
+		v1.POST("/user/signup/email", PostSignUpEmail)
+		v1.POST("/user/signin/social", PostAuthSocial)
+	}
+	v1.Use(TokenAuthMiddleware())
 	{
 		v1.GET("/providers", GetProviders)
 		v1.GET("/providers/near", GetNearProviderForMap)
@@ -106,9 +125,57 @@ func main() {
 		v1.POST("/order/new", PostNewOrder)
 		v1.POST("/order/status", PostNewOrderJourney)
 		v1.PUT("/order/tracking", UpdateOrderTracking)
+		v1.PUT("/user/profile/update", PutProfileUpdate)
 	}
+
 	r.Run(GetPort())
 
+}
+
+func getTokenFromHeader(c *gin.Context) string {
+	var tokenStr string
+	bearer := c.Request.Header.Get("Authorization")
+
+	if len(bearer) > 7 && strings.ToUpper(bearer[0:6]) == "BEARER" {
+		tokenStr = bearer[7:]
+	}
+	return tokenStr
+}
+
+func TokenAuthMiddleware() gin.HandlerFunc {
+	return func(c *gin.Context) {
+
+		tokenStr := getTokenFromHeader(c)
+
+		if tokenStr == "" {
+			c.JSON(401, gin.H{"error" : "Unauthorize request. Please check your header request, and make sure include Authorization token in your request."})
+			c.Abort()
+			return
+		} else {
+			var authToken AuthToken
+			err := dbmap.SelectOne(&authToken, `SELECT id, user_id, expired_date FROM authtoken WHERE auth_token=$1`, tokenStr)
+
+			if err != nil {
+				c.JSON(401, gin.H{"error" : "Unauthorize request. Please check your header request, and make sure include Authorization token in your request."})
+				c.Abort()
+				return
+			} else {
+
+				if time.Now().Unix() >= authToken.ExpireDate {
+					removeExpiredToken(authToken.Id);
+					c.JSON(401, gin.H{"error" : "Expired API token"})
+					c.Abort()
+					return;
+				}
+			}
+		}
+
+		c.Next()
+	}
+}
+
+func removeExpiredToken(tokenId int8) {
+	db.QueryRow(`DELETE FROM authtoken WHERE id=$1`, tokenId);
 }
 
 func GetPort() string {
@@ -121,6 +188,15 @@ func GetPort() string {
 
 // =============================== STRUCT
 
+/**
+Provider account
+Id
+ProviderId
+Email
+Token
+DeviceId
+Status
+ */
 type ProviderAccount struct {
 	Id         int64  `db:"id" json:"id"`
 	ProviderId int64  `db:"provider_id" json:"provider_id"`
@@ -130,6 +206,21 @@ type ProviderAccount struct {
 	Status     int8   `db:"status" json:"status"`
 }
 
+/**
+Provider data
+Id
+Nama
+Email
+PhoneNumber
+JasaId
+Alamat
+Provinsi
+Kabupaten
+KodePos
+Dokumen
+JoinDate
+ModifiedDate
+ */
 type ProviderData struct {
 	Id           int64  `db:"id" json:"id"`
 	Nama         string `db:"nama" json:"nama"`
@@ -146,6 +237,13 @@ type ProviderData struct {
 	ModifiedDate int64  `db:"modified_date" json:"modified_date"`
 }
 
+/**
+Provider location
+Id
+ProviderId
+Latitude
+Longitude
+ */
 type ProviderLocation struct {
 	Id         int64   `db:"id" json:"id"`
 	ProviderId int64   `db:"provider_id" json:"provider_id"`
@@ -153,22 +251,48 @@ type ProviderLocation struct {
 	Longitude  float64 `db:"longitude" json:"longitude"`
 }
 
+/**
+ProviderLatLang
+Latitude
+Longitude
+ */
 type ProviderLatLng struct {
 	Latitude  float64 `db:"latitude" json:"latitude"`
 	Longitude float64 `db:"longitude" json:"longitude"`
 }
 
+/**
+Kategori Jasa
+Id
+Jenis
+ */
 type KategoriJasa struct {
 	Id    int64  `db:"id" json:"id"`
 	Jenis string `db:"jenis" json:"jenis"`
 }
 
+/**
+UserLocation
+UserId
+Latitude
+Longitude
+ */
 type UserLocation struct {
 	UserId    int64   `db:"user_id" json:"user_id"`
 	Latitude  float64 `db:"latitude" json:"latitude"`
 	Longitude float64 `db:"longitude" json:"longitude"`
 }
 
+/**
+Provider near user for map
+Id
+Nama
+JasaId
+JenisJasa
+Latitude
+Longitude
+Distance
+ */
 type NearProviderForMap struct {
 	Id        int64   `db:"id" json:"id"`
 	Nama      string  `db:"nama" json:"nama"`
@@ -179,6 +303,13 @@ type NearProviderForMap struct {
 	Distance  float64 `db:"distance" json:"distance"`
 }
 
+/**
+Provider near user by type
+JasaId
+JenisJasa
+CountJasaProvider
+MinDistance
+ */
 type NearProviderByType struct {
 	JasaId            int64   `db:"jasa_id" json:"jasa_id"`
 	JenisJasa         string  `db:"jenis_jasa" json:"jenis_jasa"`
@@ -186,6 +317,14 @@ type NearProviderByType struct {
 	MinDistance       float64 `db:"min_distance" json:"min_distance"`
 }
 
+/**
+List price provider
+Id
+ProviderId
+ServiceName
+ServicePrice
+Negotiable
+ */
 type ProviderPriceList struct {
 	Id           int64  `db:"id" json:"id"`
 	ProviderId   int64  `db:"provider_id" json:"provider_id"`
@@ -194,6 +333,13 @@ type ProviderPriceList struct {
 	Negotiable   int8   `db:"negotiable" json:"negotiable"`
 }
 
+/**
+Rating provider
+Id
+ProviderId
+UserId
+UserRating
+ */
 type ProviderRating struct {
 	Id         int64 `db:"id" json:"id"`
 	ProviderId int64 `db:"provider_id" json:"provider_id"`
@@ -201,12 +347,25 @@ type ProviderRating struct {
 	UserRating int8  `db:"user_rating" json:"user_rating"`
 }
 
+/**
+Provider gallery
+Id
+ProviderId
+Image
+ */
 type ProviderGallery struct {
 	Id         int64  `db:"id" json:"id"`
 	ProviderId int64  `db:"provider_id" json:"provider_id"`
 	Image      string `db:"image" json:"image"`
 }
 
+/**
+Provider profile image
+Id
+ProviderId
+ProfilePict
+ProfileBg
+ */
 type ProviderProfileImage struct {
 	Id          int64  `db:"id" json:"id"`
 	ProviderId  int64  `db:"provider_id" json:"provider_id"`
@@ -214,6 +373,14 @@ type ProviderProfileImage struct {
 	ProfileBg   string `db:"profile_bg" json:"profile_bg"`
 }
 
+/**
+Provider Basic Info Response
+Id
+Nama
+Alamat
+JasaId
+JenisJasa
+ */
 type ProviderBasicInfo struct {
 	Id        int64  `db:"id" json:"id"`
 	Nama      string `db:"nama" json:"nama"`
@@ -222,6 +389,19 @@ type ProviderBasicInfo struct {
 	JenisJasa string `db:"jenis_jasa" json:"jenis_jasa"`
 }
 
+/**
+Order service
+Id
+ProviderId
+UserId
+Destination
+DestinationLat
+DestinationLong
+DestinationDesc
+Notes
+PaymentMethod
+OrderDate
+ */
 type OrderVendor struct {
 	Id              int8    `db:"id" json:"id"`
 	ProviderId      int8    `db:"provider_id" json:"provider_id"`
@@ -235,6 +415,16 @@ type OrderVendor struct {
 	OrderDate       int64   `db:"order_date" json:"order_date"`
 }
 
+/**
+Order detail
+Id
+OrderId
+JasaId
+ServiceName
+ServicePrice
+Qty
+ModifiedDate
+ */
 type OrderVendorDetail struct {
 	Id           int8   `db:"id" json:"id"`
 	OrderId      int8   `db:"order_id" json:"order_id"`
@@ -245,12 +435,25 @@ type OrderVendorDetail struct {
 	ModifiedDate int64  `db:"modified_date" json:"modified_date"`
 }
 
+/**
+Order vendor journey
+Id
+OrderId
+Status
+ */
 type OrderVendorJourney struct {
 	Id      int8 `db:"id" json:"id"`
 	OrderId int8 `db:"order_id" json:"order_id"`
 	Status  int8 `db:"status"`
 }
 
+/**
+Order vendor tracking location
+Id
+OrderId
+CurrentLatitude
+CurrentLongitude
+ */
 type OrderVendorTracking struct {
 	Id               int8    `db:"id" json:"id"`
 	OrderId          int8    `db:"order_id" json:"order_id"`
@@ -258,6 +461,20 @@ type OrderVendorTracking struct {
 	CurrentLongitude float64 `db:"longitude" json:"longitude"`
 }
 
+/**
+Post transaction request
+ProviderId
+UserId
+Destination
+DestinationLat
+DestinationLong
+DestinationDesc
+Notes
+PaymentMethod
+Notes
+Data
+OrderDate
+ */
 type PostTransaction struct {
 	ProviderId      int8                    `json:"provider_id"`
 	UserId          int8                    `json:"user_id"`
@@ -271,6 +488,14 @@ type PostTransaction struct {
 	OrderDate       int64                   `json:"order_date"`
 }
 
+/**
+Post transaction detail
+JasaId
+ServiceName
+ServicePrice
+Qty
+ModifiedDate
+ */
 type PostTransactionDetail struct {
 	JasaId       int8   `json:"jasa_id"`
 	ServiceName  string `json:"service_name"`
@@ -279,15 +504,17 @@ type PostTransactionDetail struct {
 	ModifiedDate int64  `json:"modified_date"`
 }
 
-type UserAccount struct {
-	Id          int8   `db:"id" json:"id"`
-	FirstName   string `db:"first_name" json:"first_name"`
-	LastName    string `db:"last_name" json:"last_name"`
-	Email       string `db:"email" json:"email"`
-	DeviceToken string `db:"device_token" json:"device_token"`
-	JoinDate    int64  `db:"join_date" json:"join_date"`
-}
-
+/**
+Provider by type
+Id
+Nama
+Latitude
+Longitude
+MinPrice
+MaxPrice
+Rating
+Distance
+ */
 type ProviderByCat struct {
 	Id        int64           `db:"id" json:"id"`
 	Nama      string          `db:"nama" json:"nama"`
@@ -299,6 +526,17 @@ type ProviderByCat struct {
 	Distance  float64         `db:"distance" json:"distance"`
 }
 
+/**
+Provider by type Response
+Id
+Nama
+Latitude
+Longitude
+MinPrice
+MaxPrice
+Rating
+Distance
+ */
 type ListProviderByCat struct {
 	Id        int64   `db:"id" json:"id"`
 	Nama      string  `db:"nama" json:"nama"`
@@ -310,6 +548,87 @@ type ListProviderByCat struct {
 	Distance  float64 `db:"distance" json:"distance"`
 }
 
+/**
+User account
+Id
+Email
+Password
+AuthMode
+DeviceToken
+JoinDate
+ */
+type UserAccount struct {
+	Id          int8   `db:"id" json:"id"`
+	Email       string `db:"email" json:"email"`
+	Password    string `db:"password" json:"password"`
+	AuthMode    string `db:"auth_mode" json:"auth_mode"`
+	DeviceToken string `db:"device_token" json:"device_token"`
+	JoinDate    int64  `db:"join_date" json:"join_date"`
+}
+
+/**
+Auth token
+Id
+UserId
+AuthToken
+ExpireDate
+ */
+type AuthToken struct {
+	Id         int8   `db:"id" json:"id"`
+	UserId     int8   `db:"user_id" json:"user_id"`
+	AuthToken  string `db:"auth_token" json:"auth_token"`
+	ExpireDate int64  `db:"expired_date" json:"expired_date"`
+}
+
+/**
+Auth token response
+AuthToken
+ExpiredDate
+ */
+type AuthTokenRes struct {
+	Token string `json:"token"`
+	ExpiredDate int64 `json:"expired_date"`
+}
+
+/**
+User profile
+UserId
+FullName
+Address
+Latitude
+Longitude
+DOB
+PhoneNumber
+ */
+type UserProfile struct {
+	UserId      int8    `db:"user_id" json:"user_id"`
+	FullName    string  `db:"full_name" json:"full_name"`
+	Address     string  `db:"address" json:"address"`
+	Latitude    float64 `db:"latitude" json:"latitude"`
+	Longitude   float64 `db:"longitude" json:"longitude"`
+	DOB         string  `db:"dob" json:"dob"`
+	PhoneNumber string  `db:"phone_number" json:"phone_number"`
+}
+
+/**
+Login Account Response
+UserId
+FullName
+Email
+PhoneNumber
+AuthMode
+AuthToken
+DeviceToken
+ */
+type LoginAccount struct {
+	UserId      int8      `json:"id"`
+	FullName    string    `json:"full_name"`
+	Email       string    `json:"email"`
+	PhoneNumber string    `json:"phone_number"`
+	AuthMode    string    `json:"auth_mode"`
+	AuthToken   AuthTokenRes `json:"auth_token"`
+}
+
 // ========================== FUNC
 
 func GetProviders(c *gin.Context) {
@@ -317,6 +636,7 @@ func GetProviders(c *gin.Context) {
 }
 
 func GetProvider(c *gin.Context) {
+
 	// Get provider by id
 	// providerId := c.Params.ByName("id")
 
@@ -1041,5 +1361,208 @@ func UpdateOrderTracking(c *gin.Context) {
 		}
 	} else {
 		c.JSON(400, gin.H{"error": "Record not found"})
+	}
+}
+
+func authenticateEmailAccount(userAccount UserAccount) UserAccount {
+	var recAuthAccount UserAccount
+	errAuthAccount := dbmap.SelectOne(&recAuthAccount,
+		`SELECT id, email, auth_mode FROM useraccount
+		WHERE email=$1 AND password=$2`, userAccount.Email,
+		userAccount.Password)
+
+	if errAuthAccount == nil {
+		return recAuthAccount;
+	} else {
+		return UserAccount{}
+	}
+}
+
+func isAccountExists(userAccount UserAccount) bool {
+	var recAuthAccount UserAccount
+	errAuthAccount := dbmap.SelectOne(&recAuthAccount,
+		`SELECT id FROM useraccount WHERE email=$1`, userAccount.Email)
+
+	if errAuthAccount == nil {
+		return true;
+	}
+
+	return false;
+}
+
+func PostSignInEmail(c *gin.Context) {
+	var userAccount UserAccount
+	c.Bind(&userAccount)
+
+	loginWithEmail(userAccount, c)
+}
+
+func loginWithEmail(userAccount UserAccount, c *gin.Context) {
+	recAuthAccount := authenticateEmailAccount(userAccount)
+
+	if recAuthAccount.Email != "" {
+
+		var authToken AuthToken
+
+		errAuthToken := dbmap.SelectOne(&authToken,
+			`SELECT id, user_id, auth_token, expired_date
+			FROM authtoken
+			WHERE user_id=$1`, recAuthAccount.Id)
+
+		if errAuthToken != nil {
+			authToken = createAuthToken(recAuthAccount)
+		}
+
+		userProfile := getUserProfile(recAuthAccount.Id)
+
+		loginAccount := LoginAccount {
+			UserId: recAuthAccount.Id,
+			FullName: userProfile.FullName,
+			PhoneNumber: userProfile.PhoneNumber,
+			Email: recAuthAccount.Email,
+			AuthMode: recAuthAccount.AuthMode,
+			AuthToken: AuthTokenRes{
+				Token: authToken.AuthToken,
+				ExpiredDate: authToken.ExpireDate,
+			},
+		}
+
+		c.JSON(200, loginAccount)
+
+	} else {
+		c.JSON(400, gin.H{"error" : "Account not found"})
+	}
+}
+
+func getUserProfile(userId int8) UserProfile {
+	var userProfile UserProfile
+
+	dbmap.SelectOne(&userProfile, `SELECT * FROM userprofile WHERE user_id=$1`, userId)
+
+	return userProfile
+}
+
+func createAuthToken(recAuthAccount UserAccount) AuthToken {
+	expiredTime := time.Now().Add(time.Hour * 24).Unix()
+
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
+		"id": recAuthAccount.Id,
+		"email": recAuthAccount.Email,
+		"exp": expiredTime,
+	})
+
+	// Sign and get the complete encoded token as a string using the secret
+	tokenString, errCreateToken := token.SignedString(mySigningKey)
+
+	if errCreateToken == nil {
+		if insert := db.QueryRow(
+			`INSERT INTO authtoken(user_id, auth_token, expired_date)
+			VALUES($1, $2, $3) RETURNING ID`, recAuthAccount.Id, tokenString, expiredTime);
+		insert != nil {
+
+			var id int8
+
+			insert.Scan(&id)
+
+			return AuthToken{
+				AuthToken: tokenString,
+				ExpireDate: expiredTime,
+			}
+		} else {
+			return AuthToken{}
+		}
+	} else {
+		return AuthToken{}
+	}
+}
+
+
+func PostSignUpEmail(c *gin.Context) {
+	var userAccount UserAccount
+	c.Bind(&userAccount)
+
+	if !isAccountExists(userAccount) {
+		joinDate := time.Now().Add(time.Hour * 24).Unix()
+
+		if insert := db.QueryRow(`INSERT INTO useraccount(email, password, auth_mode,
+		device_token, join_date) VALUES($1, $2, $3, $4, $5) RETURNING id`,
+		userAccount.Email, userAccount.Password, userAccount.AuthMode,
+			userAccount.DeviceToken, joinDate);
+		insert != nil {
+
+			loginWithEmail(userAccount, c)
+
+		}
+	} else {
+		c.JSON(400, gin.H{"error" : "Account already exists"})
+	}
+}
+
+func PostAuthSocial(c *gin.Context) {
+
+}
+
+func PutProfileUpdate(c *gin.Context) {
+	var userProfile UserProfile
+	c.Bind(&userProfile)
+
+	userId := getUserIdFromToken(c)
+
+	if userId != -1 {
+		var recUserProfile UserProfile
+		err := dbmap.SelectOne(&recUserProfile, `SELECT * FROM userprofile WHERE user_id=$1`, userId)
+
+		if err == nil {
+			if update := db.QueryRow(`UPDATE userprofile SET full_name=$1, address=$2, latitude=$3,
+			longitude=$4, dob=$5, phone_number=$6 WHERE user_id=$7`,
+				userProfile.FullName, userProfile.Address, userProfile.Latitude, userProfile.Longitude,
+				userProfile.DOB, userProfile.PhoneNumber, userId);
+				update != nil {
+
+				c.JSON(200, gin.H{"status" : "Success update data",
+					"data" : UserProfile{
+						UserId: userId,
+						FullName: userProfile.FullName,
+						Address: userProfile.Address,
+						Latitude: userProfile.Latitude,
+						Longitude: userProfile.Longitude,
+						DOB: userProfile.DOB,
+						PhoneNumber: userProfile.PhoneNumber,
+					},
+				})
+			}
+		} else {
+			if insert := db.QueryRow(`INSERT INTO userprofile(user_id, full_name, address, latitude,
+				longitude, dob, phone_number) VALUES($1, $2, $3, $4, $5, $6, $7)`, userId,
+				userProfile.FullName, userProfile.Address, userProfile.Latitude,
+				userProfile.Longitude, userProfile.DOB, userProfile.PhoneNumber);
+				insert != nil {
+
+				c.JSON(200, gin.H{"status" : "Success update data",
+					"data" : UserProfile{
+						UserId: userId,
+						FullName: userProfile.FullName,
+						Address: userProfile.Address,
+						Latitude: userProfile.Latitude,
+						Longitude: userProfile.Longitude,
+						DOB: userProfile.DOB,
+						PhoneNumber: userProfile.PhoneNumber,
+					},
+				})
+			}
+		}
+	}
+}
+
+func getUserIdFromToken(c *gin.Context) int8 {
+	tokenStr := getTokenFromHeader(c)
+
+	var authToken AuthToken
+	err := dbmap.SelectOne(&authToken, `SELECT user_id FROM authtoken WHERE auth_token=$1`, tokenStr)
+
+	if err == nil {
+		return authToken.UserId
+	} else {
+		return -1
 	}
 }

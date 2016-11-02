@@ -7,6 +7,11 @@
 	],
 	"Deps": [
 		{
+			"ImportPath": "github.com/dgrijalva/jwt-go",
+			"Comment": "v3.0.0-10-g9ed569b",
+			"Rev": "9ed569b5d1ac936e6494082958d63a6aa4fff99a"
+		},
+		{
 			"ImportPath": "github.com/gin-gonic/gin",
 			"Comment": "v1.0rc1-266-g542be2f",
 			"Rev": "542be2fe77724f800fcab7eb6c01a4e597fb8506"
