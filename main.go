@@ -14,7 +14,7 @@ import (
 
 	_ "github.com/lib/pq"
 	"time"
-"strings"
+	"strings"
 )
 
 // ========================= INITIALIZE
@@ -80,6 +80,9 @@ func initDbmap() *gorp.DbMap {
 	dbmap.AddTableWithName(AuthToken{}, "authtoken").SetKeys(true, "Id")
 	checkErr(dbmap.CreateTablesIfNotExists(), "Create tables failed")
 
+	dbmap.AddTableWithName(AuthTokenProvider{}, "authtokenprovider").SetKeys(true, "Id")
+	checkErr(dbmap.CreateTablesIfNotExists(), "Create tables failed")
+
 	return dbmap
 }
 
@@ -95,37 +98,42 @@ func main() {
 	{
 		v1.POST("/user/signin/email", PostSignInEmail)
 		v1.POST("/user/signup/email", PostSignUpEmail)
-		v1.POST("/user/signin/social", PostAuthSocial)
+		v1.POST("/user/auth/social", PostAuthSocial)
+		v1.POST("/provider/create", PostCreateProvider)
+		v1.POST("/provider/signin", PostSignInProvider)
+		v1.PUT("/provider/inactive", InActiveProvider)
+		v1.PUT("/provider/active", ActiveProvider)
+		v1.POST("/jasa/create", PostCreateNewJasa)
 	}
-	v1.Use(TokenAuthMiddleware())
+	v1.Use(TokenAuthUserMiddleware())
 	{
 		v1.GET("/providers", GetProviders)
 		v1.GET("/providers/near", GetNearProviderForMap)
 		v1.GET("/providers/search", GetProvidersByKeyword)
 		v1.GET("/provider/jasa/:jasa_id", GetProvidersByCategory)
 		v1.GET("/provider/data/:id", GetProvider)
-		v1.POST("/provider/create", PostCreateProvider)
-		v1.PUT("/provider/edit/:provider_id", UpdateProviderData)
-		v1.PUT("/provider/inactive", InActiveProvider)
-		v1.PUT("/provider/active", ActiveProvider)
-		v1.POST("/provider/mylocation", PostMyLocationProvider)
-		v1.POST("/jasa/create", PostCreateNewJasa)
-		v1.POST("/provider/price/add", PostAddProviderPriceList)
 		v1.GET("/provider/prices/:provider_id", GetProviderPriceList)
-		v1.GET("/price/data/:provider_id/:id", GetProviderPrice)
-		v1.PUT("/provider/price/edit", UpdateProviderPrice)
 		v1.POST("/provider/rating/add", PostAddedRating)
 		v1.GET("/rating/get/:provider_id", GetProviderRating)
 		v1.PUT("/provider/rating/edit", UpdateProviderRating)
-		v1.POST("/provider/gallery/add", PostProviderImageGallery)
-		v1.DELETE("/gallery/delete", DeleteImageGallery)
 		v1.GET("/gallery/data/:provider_id", GetListImageGallery)
-		v1.POST("/provider/profile/add", PostProfileProvider)
 		v1.GET("/profile/data/:provider_id", GetProfileProvider)
 		v1.POST("/order/new", PostNewOrder)
+		v1.PUT("/user/profile/update", PutProfileUpdate)
+		v1.PUT("/user/devicetoken/update", PutDeviceTokenUpdate)
+	}
+	v1.Use(TokenAuthProviderMiddleware())
+	{
+		v1.POST("/provider/mylocation", PostMyLocationProvider)
+		v1.POST("/provider/price/add", PostAddProviderPriceList)
+		v1.GET("/price/data/:provider_id/:id", GetProviderPrice)
+		v1.PUT("/provider/price/edit", UpdateProviderPrice)
+		v1.POST("/provider/gallery/add", PostProviderImageGallery)
+		v1.DELETE("/gallery/delete", DeleteImageGallery)
+		v1.POST("/provider/profile/add", PostProfileProvider)
+		v1.PUT("/provider/edit/:provider_id", UpdateProviderData)
 		v1.POST("/order/status", PostNewOrderJourney)
 		v1.PUT("/order/tracking", UpdateOrderTracking)
-		v1.PUT("/user/profile/update", PutProfileUpdate)
 	}
 
 	r.Run(GetPort())
@@ -142,9 +150,8 @@ func getTokenFromHeader(c *gin.Context) string {
 	return tokenStr
 }
 
-func TokenAuthMiddleware() gin.HandlerFunc {
+func TokenAuthProviderMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
-
 		tokenStr := getTokenFromHeader(c)
 
 		if tokenStr == "" {
@@ -152,8 +159,34 @@ func TokenAuthMiddleware() gin.HandlerFunc {
 			c.Abort()
 			return
 		} else {
+			var authTokenProvider AuthTokenProvider
+			err := dbmap.SelectOne(&authTokenProvider, `SELECT id, provider_id, expired_date FROM authtokenprovider
+				WHERE auth_token=$1`, tokenStr)
+
+			if err != nil {
+				c.JSON(401, gin.H{"error" : "Unauthorize request. Please check your header request, and make sure include Authorization token in your request."})
+				c.Abort()
+				return
+			}
+		}
+
+		c.Next()
+	}
+}
+
+func TokenAuthUserMiddleware() gin.HandlerFunc {
+	return func(c *gin.Context) {
+
+		tokenStr := getTokenFromHeader(c)
+
+		if tokenStr == "" {
+			c.JSON(400, gin.H{"error" : "Unauthorize request. Please check your header request, and make sure include Authorization token in your request."})
+			c.Abort()
+			return
+		} else {
 			var authToken AuthToken
-			err := dbmap.SelectOne(&authToken, `SELECT id, user_id, expired_date FROM authtoken WHERE auth_token=$1`, tokenStr)
+			err := dbmap.SelectOne(&authToken, `SELECT id, user_id, expired_date FROM authtoken
+				WHERE auth_token=$1`, tokenStr)
 
 			if err != nil {
 				c.JSON(401, gin.H{"error" : "Unauthorize request. Please check your header request, and make sure include Authorization token in your request."})
@@ -198,12 +231,12 @@ DeviceId
 Status
  */
 type ProviderAccount struct {
-	Id         int64  `db:"id" json:"id"`
-	ProviderId int64  `db:"provider_id" json:"provider_id"`
-	Email      string `db:"email" json:"email"`
-	Token      string `db:"token" json:"token"`
-	DeviceId   string `db:"device_id" json:"device_id"`
-	Status     int8   `db:"status" json:"status"`
+	Id          int8  `db:"id" json:"id"`
+	ProviderId  int8  `db:"provider_id" json:"provider_id"`
+	Email       string `db:"email" json:"email"`
+	Password    string `db:"password" json:"password"`
+	DeviceToken string `db:"device_token" json:"device_token"`
+	Status      int8   `db:"status" json:"status"`
 }
 
 /**
@@ -581,12 +614,26 @@ type AuthToken struct {
 }
 
 /**
+Auth token for provider
+Id
+ProviderId
+AuthToken
+ExpireDate
+ */
+type AuthTokenProvider struct {
+	Id         int8   `db:"id" json:"id"`
+	ProviderId int8   `db:"provider_id" json:"provider_id"`
+	AuthToken  string `db:"auth_token" json:"auth_token"`
+	ExpireDate int64  `db:"expired_date" json:"expired_date"`
+}
+
+/**
 Auth token response
 AuthToken
 ExpiredDate
  */
 type AuthTokenRes struct {
-	Token string `json:"token"`
+	Token       string `json:"token"`
 	ExpiredDate int64 `json:"expired_date"`
 }
 
@@ -626,6 +673,26 @@ type LoginAccount struct {
 	Email       string    `json:"email"`
 	PhoneNumber string    `json:"phone_number"`
 	AuthMode    string    `json:"auth_mode"`
+	AuthToken   AuthTokenRes `json:"auth_token"`
+}
+
+/**
+Provider Login Account
+ProviderId
+FullName
+JasaId
+JasaName
+Email
+PhoneNumber
+AuthToken
+ */
+type ProviderLoginAccount struct {
+	ProviderId  int8      `json:"id"`
+	FullName    string    `json:"full_name"`
+	JasaId      int8      `json:"jasa_id"`
+	JasaName    string    `json:"jasa_nama"`
+	Email       string    `json:"email"`
+	PhoneNumber string    `json:"phone_number"`
 	AuthToken   AuthTokenRes `json:"auth_token"`
 }
 
@@ -832,6 +899,51 @@ ORDER BY distance ASC;
 
 func GetProvidersByKeyword(c *gin.Context) {
 	// Get all provider by keyword
+}
+
+func getTokenLoginProvider(providerId int8) {
+
+}
+
+func PostSignInProvider(c *gin.Context) {
+	var providerAccount ProviderAccount
+	c.Bind(&providerAccount)
+
+	var recProviderAccount ProviderAccount
+	err := dbmap.SelectOne(&recProviderAccount, `SELECT provider_id FROM provideraccount
+		WHERE email=$1 AND password=$2`, providerAccount.Email, providerAccount.Password)
+
+	if err == nil {
+
+		var authTokenProvider AuthTokenProvider
+
+		errAuthToken := dbmap.SelectOne(&authTokenProvider,
+			`SELECT id, provider_id, auth_token, expired_date
+			FROM authtokenprovider
+			WHERE provider_id=$1`, recProviderAccount.ProviderId)
+
+		if errAuthToken != nil {
+			authTokenProvider = createAuthTokenProvider(recProviderAccount)
+		}
+
+		providerData := getProviderData(recProviderAccount.ProviderId)
+
+		loginAccount := ProviderLoginAccount{
+			ProviderId: recProviderAccount.ProviderId,
+			FullName: providerData.Nama,
+			PhoneNumber: providerData.PhoneNumber,
+			Email: recProviderAccount.Email,
+			AuthToken: AuthTokenRes{
+				Token: authTokenProvider.AuthToken,
+				ExpiredDate: authTokenProvider.ExpireDate,
+			},
+		}
+
+		c.JSON(200, loginAccount)
+
+	} else {
+		c.JSON(400, gin.H{"error" : "Account not exists"})
+	}
 }
 
 func PostCreateProvider(c *gin.Context) {
@@ -1046,6 +1158,9 @@ func UpdateProviderPrice(c *gin.Context) {
 }
 
 func PostAddedRating(c *gin.Context) {
+
+	userId := getUserIdFromToken(c)
+
 	var providerRating ProviderRating
 	c.Bind(&providerRating)
 
@@ -1059,14 +1174,14 @@ func PostAddedRating(c *gin.Context) {
 		var recProviderRating ProviderRating
 		errRating := dbmap.SelectOne(&recProviderRating, `SELECT *
 			FROM providerrating
-			WHERE user_id=$1 AND provider_id=$2`, providerRating.UserId, providerRating.ProviderId)
+			WHERE user_id=$1 AND provider_id=$2`, userId, providerRating.ProviderId)
 
 		if errRating != nil {
 			if insert := db.QueryRow(`INSERT
 				INTO providerrating(provider_id, user_id, user_rating)
 			VALUES($1, $2, $3)`,
 				providerRating.ProviderId,
-				providerRating.UserId,
+				userId,
 				providerRating.UserRating); insert != nil {
 				c.JSON(200, gin.H{"status": "Success give rating"})
 			}
@@ -1095,19 +1210,22 @@ func GetProviderRating(c *gin.Context) {
 }
 
 func UpdateProviderRating(c *gin.Context) {
+
+	userId := getUserIdFromToken(c)
+
 	var providerRating ProviderRating
 	c.Bind(&providerRating)
 
 	var recProviderRating ProviderRating
 	err := dbmap.SelectOne(&recProviderRating, `SELECT * FROM providerrating
 		WHERE provider_id=$1 AND user_id=$2`,
-		providerRating.ProviderId, providerRating.UserId)
+		providerRating.ProviderId, userId)
 
 	if err == nil {
 		if update := db.QueryRow(`UPDATE providerrating SET user_rating=$1
 			WHERE provider_id=$2 AND user_id=$3`,
 			providerRating.UserRating, providerRating.ProviderId,
-			providerRating.UserId); update != nil {
+			userId); update != nil {
 			c.JSON(200, gin.H{"status": "update success"})
 		}
 	} else {
@@ -1221,6 +1339,9 @@ func PostProfileProvider(c *gin.Context) {
 }
 
 func PostNewOrder(c *gin.Context) {
+
+	userId := getUserIdFromToken(c)
+
 	var postTransaction PostTransaction
 	c.Bind(&postTransaction)
 
@@ -1230,8 +1351,7 @@ func PostNewOrder(c *gin.Context) {
 		postTransaction.ProviderId)
 
 	var user UserAccount
-	errUser := dbmap.SelectOne(&user, `SELECT id FROM useraccount WHERE id=$1`,
-		postTransaction.UserId)
+	errUser := dbmap.SelectOne(&user, `SELECT id FROM useraccount WHERE id=$1`, userId)
 
 	if errProvider != nil {
 		checkErr(errProvider, "select failed")
@@ -1250,10 +1370,14 @@ func PostNewOrder(c *gin.Context) {
 		payment_method,
 		order_date)
 		VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING id`,
-			postTransaction.ProviderId, postTransaction.UserId,
-			postTransaction.Destination, postTransaction.DestinationLat,
-			postTransaction.DestinationLong, postTransaction.DestinationDesc,
-			postTransaction.Notes, postTransaction.PaymentMethod,
+			postTransaction.ProviderId,
+			userId,
+			postTransaction.Destination,
+			postTransaction.DestinationLat,
+			postTransaction.DestinationLong,
+			postTransaction.DestinationDesc,
+			postTransaction.Notes,
+			postTransaction.PaymentMethod,
 			postTransaction.OrderDate); insert != nil {
 
 			var orderId int8
@@ -1378,6 +1502,19 @@ func authenticateEmailAccount(userAccount UserAccount) UserAccount {
 	}
 }
 
+func authenticateSocialAccount(userAccount UserAccount) UserAccount {
+	var recAuthAccount UserAccount
+	errAuthAccount := dbmap.SelectOne(&recAuthAccount,
+		`SELECT id, email, auth_mode FROM useraccount
+		WHERE email=$1`, userAccount.Email)
+
+	if errAuthAccount == nil {
+		return recAuthAccount;
+	} else {
+		return UserAccount{}
+	}
+}
+
 func isAccountExists(userAccount UserAccount) bool {
 	var recAuthAccount UserAccount
 	errAuthAccount := dbmap.SelectOne(&recAuthAccount,
@@ -1394,11 +1531,17 @@ func PostSignInEmail(c *gin.Context) {
 	var userAccount UserAccount
 	c.Bind(&userAccount)
 
-	loginWithEmail(userAccount, c)
+	loginWithRegisteredAccount(userAccount, c)
 }
 
-func loginWithEmail(userAccount UserAccount, c *gin.Context) {
-	recAuthAccount := authenticateEmailAccount(userAccount)
+func loginWithRegisteredAccount(userAccount UserAccount, c *gin.Context) {
+	var recAuthAccount UserAccount
+
+	if userAccount.AuthMode == "email" {
+		recAuthAccount = authenticateEmailAccount(userAccount)
+	} else {
+		recAuthAccount = authenticateSocialAccount(userAccount)
+	}
 
 	if recAuthAccount.Email != "" {
 
@@ -1411,11 +1554,16 @@ func loginWithEmail(userAccount UserAccount, c *gin.Context) {
 
 		if errAuthToken != nil {
 			authToken = createAuthToken(recAuthAccount)
+		} else {
+			if authToken.ExpireDate <= time.Now().Unix() {
+				removeExpiredToken(authToken.Id)
+				authToken = createAuthToken(recAuthAccount)
+			}
 		}
 
 		userProfile := getUserProfile(recAuthAccount.Id)
 
-		loginAccount := LoginAccount {
+		loginAccount := LoginAccount{
 			UserId: recAuthAccount.Id,
 			FullName: userProfile.FullName,
 			PhoneNumber: userProfile.PhoneNumber,
@@ -1440,6 +1588,48 @@ func getUserProfile(userId int8) UserProfile {
 	dbmap.SelectOne(&userProfile, `SELECT * FROM userprofile WHERE user_id=$1`, userId)
 
 	return userProfile
+}
+
+func getProviderData(providerId int8) ProviderData {
+	var providerData ProviderData
+
+	dbmap.SelectOne(&providerData, `SELECT * FROM providerdata WHERE id=$1`, providerId)
+
+	return providerData
+}
+
+func createAuthTokenProvider(recProviderAccount ProviderAccount) AuthTokenProvider {
+	expiredTime := time.Now().Add(time.Hour * 24).Unix()
+
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
+		"id": recProviderAccount.Id,
+		"email": recProviderAccount.Email,
+		"exp": expiredTime,
+	})
+
+	// Sign and get the complete encoded token as a string using the secret
+	tokenString, errCreateToken := token.SignedString(mySigningKey)
+
+	if errCreateToken == nil {
+		if insert := db.QueryRow(
+			`INSERT INTO authtokenprovider(provider_id, auth_token, expired_date)
+			VALUES($1, $2, $3) RETURNING ID`, recProviderAccount.ProviderId, tokenString, expiredTime);
+		insert != nil {
+
+			var id int8
+
+			insert.Scan(&id)
+
+			return AuthTokenProvider{
+				AuthToken: tokenString,
+				ExpireDate: expiredTime,
+			}
+		} else {
+			return AuthTokenProvider{}
+		}
+	} else {
+		return AuthTokenProvider{}
+	}
 }
 
 func createAuthToken(recAuthAccount UserAccount) AuthToken {
@@ -1476,7 +1666,6 @@ func createAuthToken(recAuthAccount UserAccount) AuthToken {
 	}
 }
 
-
 func PostSignUpEmail(c *gin.Context) {
 	var userAccount UserAccount
 	c.Bind(&userAccount)
@@ -1486,11 +1675,11 @@ func PostSignUpEmail(c *gin.Context) {
 
 		if insert := db.QueryRow(`INSERT INTO useraccount(email, password, auth_mode,
 		device_token, join_date) VALUES($1, $2, $3, $4, $5) RETURNING id`,
-		userAccount.Email, userAccount.Password, userAccount.AuthMode,
+			userAccount.Email, userAccount.Password, userAccount.AuthMode,
 			userAccount.DeviceToken, joinDate);
 		insert != nil {
 
-			loginWithEmail(userAccount, c)
+			loginWithRegisteredAccount(userAccount, c)
 
 		}
 	} else {
@@ -1499,7 +1688,26 @@ func PostSignUpEmail(c *gin.Context) {
 }
 
 func PostAuthSocial(c *gin.Context) {
+	var userAccount UserAccount
+	c.Bind(&userAccount)
 
+	if !isAccountExists(userAccount) {
+		// sign up
+		joinDate := time.Now().Add(time.Hour * 24).Unix()
+
+		if insert := db.QueryRow(`INSERT INTO useraccount(email, password, auth_mode,
+		device_token, join_date) VALUES($1, $2, $3, $4, $5) RETURNING id`,
+			userAccount.Email, userAccount.Password, userAccount.AuthMode,
+			userAccount.DeviceToken, joinDate);
+		insert != nil {
+
+			loginWithRegisteredAccount(userAccount, c)
+
+		}
+	} else {
+		// sign in
+		loginWithRegisteredAccount(userAccount, c)
+	}
 }
 
 func PutProfileUpdate(c *gin.Context) {
@@ -1517,7 +1725,7 @@ func PutProfileUpdate(c *gin.Context) {
 			longitude=$4, dob=$5, phone_number=$6 WHERE user_id=$7`,
 				userProfile.FullName, userProfile.Address, userProfile.Latitude, userProfile.Longitude,
 				userProfile.DOB, userProfile.PhoneNumber, userId);
-				update != nil {
+			update != nil {
 
 				c.JSON(200, gin.H{"status" : "Success update data",
 					"data" : UserProfile{
@@ -1536,7 +1744,7 @@ func PutProfileUpdate(c *gin.Context) {
 				longitude, dob, phone_number) VALUES($1, $2, $3, $4, $5, $6, $7)`, userId,
 				userProfile.FullName, userProfile.Address, userProfile.Latitude,
 				userProfile.Longitude, userProfile.DOB, userProfile.PhoneNumber);
-				insert != nil {
+			insert != nil {
 
 				c.JSON(200, gin.H{"status" : "Success update data",
 					"data" : UserProfile{
@@ -1551,6 +1759,23 @@ func PutProfileUpdate(c *gin.Context) {
 				})
 			}
 		}
+	}
+}
+
+func PutDeviceTokenUpdate(c *gin.Context) {
+	var userAccount UserAccount
+	c.Bind(&userAccount)
+
+	userId := getUserIdFromToken(c)
+
+	if userId != -1 {
+		if update := db.QueryRow(`UPDATE useraccount SET device_token=$1 WHERE id=$2`,
+			userAccount.DeviceToken, userId);
+		update != nil {
+			c.JSON(200, gin.H{"success" : "Device token updated" })
+		}
+	} else {
+		c.JSON(400, gin.H{"error" : "Account not found"})
 	}
 }
 
