@@ -651,8 +651,6 @@ type UserProfile struct {
 	UserId      int8    `db:"user_id" json:"user_id"`
 	FullName    string  `db:"full_name" json:"full_name"`
 	Address     string  `db:"address" json:"address"`
-	Latitude    float64 `db:"latitude" json:"latitude"`
-	Longitude   float64 `db:"longitude" json:"longitude"`
 	DOB         string  `db:"dob" json:"dob"`
 	PhoneNumber string  `db:"phone_number" json:"phone_number"`
 }
@@ -1721,9 +1719,9 @@ func PutProfileUpdate(c *gin.Context) {
 		err := dbmap.SelectOne(&recUserProfile, `SELECT * FROM userprofile WHERE user_id=$1`, userId)
 
 		if err == nil {
-			if update := db.QueryRow(`UPDATE userprofile SET full_name=$1, address=$2, latitude=$3,
-			longitude=$4, dob=$5, phone_number=$6 WHERE user_id=$7`,
-				userProfile.FullName, userProfile.Address, userProfile.Latitude, userProfile.Longitude,
+			if update := db.QueryRow(`UPDATE userprofile SET full_name=$1, address=$2,
+			dob=$5, phone_number=$6 WHERE user_id=$7`,
+				userProfile.FullName, userProfile.Address,
 				userProfile.DOB, userProfile.PhoneNumber, userId);
 			update != nil {
 
@@ -1732,18 +1730,16 @@ func PutProfileUpdate(c *gin.Context) {
 						UserId: userId,
 						FullName: userProfile.FullName,
 						Address: userProfile.Address,
-						Latitude: userProfile.Latitude,
-						Longitude: userProfile.Longitude,
 						DOB: userProfile.DOB,
 						PhoneNumber: userProfile.PhoneNumber,
 					},
 				})
 			}
 		} else {
-			if insert := db.QueryRow(`INSERT INTO userprofile(user_id, full_name, address, latitude,
-				longitude, dob, phone_number) VALUES($1, $2, $3, $4, $5, $6, $7)`, userId,
-				userProfile.FullName, userProfile.Address, userProfile.Latitude,
-				userProfile.Longitude, userProfile.DOB, userProfile.PhoneNumber);
+			if insert := db.QueryRow(`INSERT INTO userprofile(user_id, full_name, address,
+				dob, phone_number) VALUES($1, $2, $3, $4, $5)`, userId,
+				userProfile.FullName, userProfile.Address,
+				userProfile.DOB, userProfile.PhoneNumber);
 			insert != nil {
 
 				c.JSON(200, gin.H{"status" : "Success update data",
@@ -1751,8 +1747,6 @@ func PutProfileUpdate(c *gin.Context) {
 						UserId: userId,
 						FullName: userProfile.FullName,
 						Address: userProfile.Address,
-						Latitude: userProfile.Latitude,
-						Longitude: userProfile.Longitude,
 						DOB: userProfile.DOB,
 						PhoneNumber: userProfile.PhoneNumber,
 					},
