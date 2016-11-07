@@ -728,6 +728,14 @@ type OrderDetailItem struct {
 	ModifiedDate int64 `db:"modified_date" json:"modified_date"`
 }
 
+type ProviderDetailJourney struct {
+	ProviderId int64 `db:"provider_id" json:"provider_id"`
+	ProviderName string `db:"provider_name" json:"provider_name"`
+	ProviderAddress string `db:"provider_address" json:"provider_address"`
+	ProviderBgImage sql.NullString `db:"provider_bg_images" json:"provider_bg_images"`
+	ProviderType int64 `db:"provider_type" json:"provider_type"`
+}
+
 // ========================== FUNC
 
 func GetProviders(c *gin.Context) {
@@ -1555,11 +1563,16 @@ func GetUserOrder(c *gin.Context) {
 func GetOrderDetail(c *gin.Context) {
 	orderId := c.Params.ByName("order_id")
 
-	var providerData ProviderData
+	var providerData ProviderDetailJourney
 	errProviderData := dbmap.SelectOne(&providerData,
-		`SELECT pd.id, nama, alamat
+		`SELECT pd.id as provider_id,
+			nama as provider_name,
+			alamat as provider_address,
+			pd.jasa_id as provider_type,
+			profile_bg as provider_bg_images
 		FROM providerdata pd
 			JOIN ordervendor ov ON ov.provider_id = pd.id
+			LEFT JOIN providerprofileimage ppi ON ppi.provider_id = pd.id
 		WHERE ov.id=$1`, orderId)
 
 	var orderJourney []OrderJourneyItem
@@ -1577,9 +1590,11 @@ func GetOrderDetail(c *gin.Context) {
 	if errOrderJourney == nil && errOrderDetailItem == nil && errProviderData == nil{
 		c.JSON(200, gin.H{"journey" : orderJourney,
 			"items" : orderDetail,
-			"provider_id" : providerData.Id,
-			"provider_name" : providerData.Nama,
-			"provider_address" : providerData.Alamat,
+			"provider_id" : providerData.ProviderId,
+			"provider_name" : providerData.ProviderName,
+			"provider_address" : providerData.ProviderAddress,
+			"provider_bg_images" : providerData.ProviderBgImage.String,
+			"provider_type" : providerData.ProviderType,
 		})
 	} else {
 		c.JSON(400, gin.H{"error" : "Failed get order detail"})
