@@ -15,6 +15,7 @@ import (
 	_ "github.com/lib/pq"
 	"time"
 	"strings"
+	"fmt"
 )
 
 // ========================= INITIALIZE
@@ -208,7 +209,7 @@ func TokenAuthUserMiddleware() gin.HandlerFunc {
 	}
 }
 
-func removeExpiredToken(tokenId int8) {
+func removeExpiredToken(tokenId int64) {
 	db.QueryRow(`DELETE FROM authtoken WHERE id=$1`, tokenId);
 }
 
@@ -232,12 +233,12 @@ DeviceId
 Status
  */
 type ProviderAccount struct {
-	Id          int8  `db:"id" json:"id"`
-	ProviderId  int8  `db:"provider_id" json:"provider_id"`
+	Id          int64  `db:"id" json:"id"`
+	ProviderId  int64  `db:"provider_id" json:"provider_id"`
 	Email       string `db:"email" json:"email"`
 	Password    string `db:"password" json:"password"`
 	DeviceToken string `db:"device_token" json:"device_token"`
-	Status      int8   `db:"status" json:"status"`
+	Status      int64   `db:"status" json:"status"`
 }
 
 /**
@@ -260,7 +261,7 @@ type ProviderData struct {
 	Nama         string `db:"nama" json:"nama"`
 	Email        string `db:"email" json:"email"`
 	PhoneNumber  string `db:"phone_number" json:"phone_number"`
-	JasaId       int8   `db:"jasa_id" json:"jasa_id"`
+	JasaId       int64   `db:"jasa_id" json:"jasa_id"`
 	Alamat       string `db:"alamat" json:"alamat"`
 	Provinsi     string `db:"provinsi" json:"provinsi"`
 	Kabupaten    string `db:"kabupaten" json:"kabupaten"`
@@ -347,7 +348,7 @@ MinDistance
 type NearProviderByType struct {
 	JasaId            int64   `db:"jasa_id" json:"jasa_id"`
 	JenisJasa         string  `db:"jenis_jasa" json:"jenis_jasa"`
-	CountJasaProvider int8    `db:"count_jasa_provider" json:"count_jasa_provider"`
+	CountJasaProvider int64    `db:"count_jasa_provider" json:"count_jasa_provider"`
 	MinDistance       float64 `db:"min_distance" json:"min_distance"`
 }
 
@@ -364,7 +365,7 @@ type ProviderPriceList struct {
 	ProviderId   int64  `db:"provider_id" json:"provider_id"`
 	ServiceName  string `db:"service_name" json:"service_name"`
 	ServicePrice int64  `db:"service_price" json:"service_price"`
-	Negotiable   int8   `db:"negotiable" json:"negotiable"`
+	Negotiable   int64   `db:"negotiable" json:"negotiable"`
 }
 
 /**
@@ -378,7 +379,7 @@ type ProviderRating struct {
 	Id         int64 `db:"id" json:"id"`
 	ProviderId int64 `db:"provider_id" json:"provider_id"`
 	UserId     int64 `db:"user_id" json:"user_id"`
-	UserRating int8  `db:"user_rating" json:"user_rating"`
+	UserRating int64  `db:"user_rating" json:"user_rating"`
 }
 
 /**
@@ -419,7 +420,7 @@ type ProviderBasicInfo struct {
 	Id        int64  `db:"id" json:"id"`
 	Nama      string `db:"nama" json:"nama"`
 	Alamat    string `db:"alamat" json:"alamat"`
-	JasaId    int8   `db:"jasa_id" json:"jasa_id"`
+	JasaId    int64   `db:"jasa_id" json:"jasa_id"`
 	JenisJasa string `db:"jenis_jasa" json:"jenis_jasa"`
 }
 
@@ -437,9 +438,9 @@ PaymentMethod
 OrderDate
  */
 type OrderVendor struct {
-	Id              int8    `db:"id" json:"id"`
-	ProviderId      int8    `db:"provider_id" json:"provider_id"`
-	UserId          int8    `db:"user_id" json:"user_id"`
+	Id              int64    `db:"id" json:"id"`
+	ProviderId      int64    `db:"provider_id" json:"provider_id"`
+	UserId          int64    `db:"user_id" json:"user_id"`
 	Destination     string  `db:"destination" json:"destination"`
 	DestinationLat  float64 `db:"destination_lat" json:"destination_lat"`
 	DestinationLong float64 `db:"destination_long" json:"destination_long"`
@@ -460,12 +461,12 @@ Qty
 ModifiedDate
  */
 type OrderVendorDetail struct {
-	Id           int8   `db:"id" json:"id"`
-	OrderId      int8   `db:"order_id" json:"order_id"`
-	JasaId       int8   `db:"jasa_id" json:"jasa_id"`
+	Id           int64   `db:"id" json:"id"`
+	OrderId      int64   `db:"order_id" json:"order_id"`
+	JasaId       int64   `db:"jasa_id" json:"jasa_id"`
 	ServiceName  string `db:"service_name" json:"service_name"`
 	ServicePrice int64  `db:"service_price" json:"service_price"`
-	Qty          int8   `db:"qty" json:"qty"`
+	Qty          int64   `db:"qty" json:"qty"`
 	ModifiedDate int64  `db:"modified_date" json:"modified_date"`
 }
 
@@ -476,9 +477,9 @@ OrderId
 Status
  */
 type OrderVendorJourney struct {
-	Id      int8 `db:"id" json:"id"`
-	OrderId int8 `db:"order_id" json:"order_id"`
-	Status  int8 `db:"status"`
+	Id      int64 `db:"id" json:"id"`
+	OrderId int64 `db:"order_id" json:"order_id"`
+	Status  int64 `db:"status"`
 }
 
 /**
@@ -489,8 +490,8 @@ CurrentLatitude
 CurrentLongitude
  */
 type OrderVendorTracking struct {
-	Id               int8    `db:"id" json:"id"`
-	OrderId          int8    `db:"order_id" json:"order_id"`
+	Id               int64    `db:"id" json:"id"`
+	OrderId          int64    `db:"order_id" json:"order_id"`
 	CurrentLatitude  float64 `db:"latitude" json:"latitude"`
 	CurrentLongitude float64 `db:"longitude" json:"longitude"`
 }
@@ -510,7 +511,7 @@ Data
 OrderDate
  */
 type PostTransaction struct {
-	ProviderId      int8                    `json:"provider_id"`
+	ProviderId      int64                  `json:"provider_id"`
 	Destination     string                  `json:"destination"`
 	DestinationLat  float64                 `json:"destination_lat"`
 	DestinationLong float64                 `json:"destination_long"`
@@ -530,10 +531,10 @@ Qty
 ModifiedDate
  */
 type PostTransactionDetail struct {
-	JasaId       int8   `json:"jasa_id"`
+	JasaId       int64   `json:"jasa_id"`
 	ServiceName  string `json:"service_name"`
 	ServicePrice int64  `json:"service_price"`
-	Qty          int8   `json:"qty"`
+	Qty          int64   `json:"qty"`
 	ModifiedDate int64  `json:"modified_date"`
 }
 
@@ -591,7 +592,7 @@ DeviceToken
 JoinDate
  */
 type UserAccount struct {
-	Id          int8   `db:"id" json:"id"`
+	Id          int64   `db:"id" json:"id"`
 	Email       string `db:"email" json:"email"`
 	Password    string `db:"password" json:"password"`
 	AuthMode    string `db:"auth_mode" json:"auth_mode"`
@@ -607,8 +608,8 @@ AuthToken
 ExpireDate
  */
 type AuthToken struct {
-	Id         int8   `db:"id" json:"id"`
-	UserId     int8   `db:"user_id" json:"user_id"`
+	Id         int64   `db:"id" json:"id"`
+	UserId     int64   `db:"user_id" json:"user_id"`
 	AuthToken  string `db:"auth_token" json:"auth_token"`
 	ExpireDate int64  `db:"expired_date" json:"expired_date"`
 }
@@ -621,8 +622,8 @@ AuthToken
 ExpireDate
  */
 type AuthTokenProvider struct {
-	Id         int8   `db:"id" json:"id"`
-	ProviderId int8   `db:"provider_id" json:"provider_id"`
+	Id         int64   `db:"id" json:"id"`
+	ProviderId int64   `db:"provider_id" json:"provider_id"`
 	AuthToken  string `db:"auth_token" json:"auth_token"`
 	ExpireDate int64  `db:"expired_date" json:"expired_date"`
 }
@@ -648,7 +649,7 @@ DOB
 PhoneNumber
  */
 type UserProfile struct {
-	UserId      int8    `db:"user_id" json:"user_id"`
+	UserId      int64    `db:"user_id" json:"user_id"`
 	FullName    string  `db:"full_name" json:"full_name"`
 	Address     string  `db:"address" json:"address"`
 	DOB         string  `db:"dob" json:"dob"`
@@ -666,7 +667,7 @@ AuthToken
 DeviceToken
  */
 type LoginAccount struct {
-	UserId      int8      `json:"id"`
+	UserId      int64      `json:"id"`
 	FullName    string    `json:"full_name"`
 	Email       string    `json:"email"`
 	PhoneNumber string    `json:"phone_number"`
@@ -685,9 +686,9 @@ PhoneNumber
 AuthToken
  */
 type ProviderLoginAccount struct {
-	ProviderId  int8      `json:"id"`
+	ProviderId  int64      `json:"id"`
 	FullName    string    `json:"full_name"`
-	JasaId      int8      `json:"jasa_id"`
+	JasaId      int64      `json:"jasa_id"`
 	JasaName    string    `json:"jasa_nama"`
 	Email       string    `json:"email"`
 	PhoneNumber string    `json:"phone_number"`
@@ -899,7 +900,7 @@ func GetProvidersByKeyword(c *gin.Context) {
 	// Get all provider by keyword
 }
 
-func getTokenLoginProvider(providerId int8) {
+func getTokenLoginProvider(providerId int64) {
 
 }
 
@@ -1343,6 +1344,8 @@ func PostNewOrder(c *gin.Context) {
 	var postTransaction PostTransaction
 	c.Bind(&postTransaction)
 
+	fmt.Printf("ID : %d", postTransaction.ProviderId)
+
 	var providerAccount ProviderAccount
 	errProvider := dbmap.SelectOne(&providerAccount,
 		`SELECT provider_id FROM provideraccount WHERE provider_id=$1`,
@@ -1376,7 +1379,7 @@ func PostNewOrder(c *gin.Context) {
 			postTransaction.PaymentMethod,
 			postTransaction.OrderDate); insert != nil {
 
-			var orderId int8
+			var orderId int64
 			err := insert.Scan(&orderId)
 
 			if err == nil {
@@ -1578,7 +1581,7 @@ func loginWithRegisteredAccount(userAccount UserAccount, c *gin.Context) {
 	}
 }
 
-func getUserProfile(userId int8) UserProfile {
+func getUserProfile(userId int64) UserProfile {
 	var userProfile UserProfile
 
 	dbmap.SelectOne(&userProfile, `SELECT * FROM userprofile WHERE user_id=$1`, userId)
@@ -1586,7 +1589,7 @@ func getUserProfile(userId int8) UserProfile {
 	return userProfile
 }
 
-func getProviderData(providerId int8) ProviderData {
+func getProviderData(providerId int64) ProviderData {
 	var providerData ProviderData
 
 	dbmap.SelectOne(&providerData, `SELECT * FROM providerdata WHERE id=$1`, providerId)
@@ -1612,7 +1615,7 @@ func createAuthTokenProvider(recProviderAccount ProviderAccount) AuthTokenProvid
 			VALUES($1, $2, $3) RETURNING ID`, recProviderAccount.ProviderId, tokenString, expiredTime);
 		insert != nil {
 
-			var id int8
+			var id int64
 
 			insert.Scan(&id)
 
@@ -1646,7 +1649,7 @@ func createAuthToken(recAuthAccount UserAccount) AuthToken {
 			VALUES($1, $2, $3) RETURNING ID`, recAuthAccount.Id, tokenString, expiredTime);
 		insert != nil {
 
-			var id int8
+			var id int64
 
 			insert.Scan(&id)
 
@@ -1771,7 +1774,7 @@ func PutDeviceTokenUpdate(c *gin.Context) {
 	}
 }
 
-func getUserIdFromToken(c *gin.Context) int8 {
+func getUserIdFromToken(c *gin.Context) int64 {
 	tokenStr := getTokenFromHeader(c)
 
 	var authToken AuthToken
