@@ -518,7 +518,6 @@ type PostTransaction struct {
 	Notes           string                  `json:"notes"`
 	PaymentMethod   int                     `json:"payment_method"`
 	Data            []PostTransactionDetail `json:"data"`
-	OrderDate       int64                   `json:"order_date"`
 }
 
 /**
@@ -1374,7 +1373,7 @@ func PostNewOrder(c *gin.Context) {
 			postTransaction.DestinationDesc,
 			postTransaction.Notes,
 			postTransaction.PaymentMethod,
-			postTransaction.OrderDate); insert != nil {
+			time.Now().Unix()); insert != nil {
 
 			var orderId int64
 			err := insert.Scan(&orderId)
