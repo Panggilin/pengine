@@ -511,7 +511,6 @@ OrderDate
  */
 type PostTransaction struct {
 	ProviderId      int8                    `json:"provider_id"`
-	UserId          int8                    `json:"user_id"`
 	Destination     string                  `json:"destination"`
 	DestinationLat  float64                 `json:"destination_lat"`
 	DestinationLong float64                 `json:"destination_long"`
