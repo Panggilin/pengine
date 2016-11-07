@@ -1721,7 +1721,7 @@ func PutProfileUpdate(c *gin.Context) {
 
 		if err == nil {
 			if update := db.QueryRow(`UPDATE userprofile SET full_name=$1, address=$2,
-			dob=$5, phone_number=$6 WHERE user_id=$7`,
+			dob=$3, phone_number=$4 WHERE user_id=$5`,
 				userProfile.FullName, userProfile.Address,
 				userProfile.DOB, userProfile.PhoneNumber, userId);
 			update != nil {
