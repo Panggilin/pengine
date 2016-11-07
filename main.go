@@ -119,6 +119,7 @@ func main() {
 		v1.GET("/gallery/data/:provider_id", GetListImageGallery)
 		v1.GET("/profile/data/:provider_id", GetProfileProvider)
 		v1.POST("/order/new", PostNewOrder)
+		v1.GET("/order/me", GetUserOrder)
 		v1.PUT("/user/profile/update", PutProfileUpdate)
 		v1.PUT("/user/devicetoken/update", PutDeviceTokenUpdate)
 		v1.GET("/user/me", GetUserProfile)
@@ -691,6 +692,20 @@ type ProviderLoginAccount struct {
 	Email       string    `json:"email"`
 	PhoneNumber string    `json:"phone_number"`
 	AuthToken   AuthTokenRes `json:"auth_token"`
+}
+
+type OrderItemList struct {
+	Id int64 `db:"id" json:"id"`
+	JasaId int64 `db:"jasa_id" json:"jasa_id"`
+	JasaName string `db:"jasa_name" json:"jasa_name"`
+	VendorId int64 `db:"vendor_id" json:"vendor_id"`
+	VendorName string `db:"vendor_name" json:"vendor_name"`
+	Destination string `db:"destination" json:"destination"`
+	Latitude float64 `db:"latitude" json:"latitude"`
+	Longitude float64 `db:"longitude" json:"longitude"`
+	Price int64 `db:"price" json:"price"`
+	Status int `db:"status" json:"status"`
+	OrderDate int64 `db:"order_date" json:"order_date"`
 }
 
 // ========================== FUNC
@@ -1439,6 +1454,85 @@ func PostNewOrder(c *gin.Context) {
 			} else {
 				checkErr(err, "Insert transaction failed")
 			}
+		}
+	}
+}
+
+type Query struct {
+	LowerThan   int `form:"lower_than"`
+	GreaterThan int `form:"greater_than"`
+}
+
+func GetUserOrder(c *gin.Context) {
+	userId := getUserIdFromToken(c)
+
+	var query Query
+	c.Bind(&query)
+
+	var orderList []OrderItemList
+
+	if query.LowerThan > 0 {
+		_, err := dbmap.Select(&orderList, `SELECT ov.id, ov.destination, ov.destination_lat as latitude, ov.destination_long as longitude, order_date,
+		pd.id as vendor_id, pd.nama as vendor_name,
+		kj.id as jasa_id, kj.jenis as jasa_name,
+		otp.total_price as price,
+		ouj.status
+		FROM ordervendor ov
+			JOIN providerdata pd ON pd.id = ov.provider_id
+			JOIN kategorijasa kj ON kj.id = pd.jasa_id
+			JOIN (SELECT order_id, SUM(service_price * qty) as total_price
+					FROM ordervendordetail WHERE order_id IN (SELECT id FROM ordervendor WHERE user_id=$1) GROUP BY order_id)
+				as otp ON otp.order_id = ov.id
+			JOIN (	SELECT order_id, MAX(status) as status FROM ordervendorjourney WHERE order_id IN (SELECT id FROM ordervendor WHERE user_id=$1) GROUP BY order_id)
+				as ouj ON ouj.order_id = ov.id
+		WHERE ov.user_id=$1 AND status < $2`, userId, query.LowerThan)
+
+		if err == nil {
+			c.JSON(200, gin.H{"data" : orderList})
+		} else {
+			checkErr(err, "Select failed")
+		}
+	} else if query.GreaterThan > 0 {
+		_, err := dbmap.Select(&orderList, `SELECT ov.id, ov.destination, ov.destination_lat as latitude, ov.destination_long as longitude, order_date,
+		pd.id as vendor_id, pd.nama as vendor_name,
+		kj.id as jasa_id, kj.jenis as jasa_name,
+		otp.total_price as price,
+		ouj.status
+		FROM ordervendor ov
+			JOIN providerdata pd ON pd.id = ov.provider_id
+			JOIN kategorijasa kj ON kj.id = pd.jasa_id
+			JOIN (SELECT order_id, SUM(service_price * qty) as total_price
+					FROM ordervendordetail WHERE order_id IN (SELECT id FROM ordervendor WHERE user_id=$1) GROUP BY order_id)
+				as otp ON otp.order_id = ov.id
+			JOIN (	SELECT order_id, MAX(status) as status FROM ordervendorjourney WHERE order_id IN (SELECT id FROM ordervendor WHERE user_id=$1) GROUP BY order_id)
+				as ouj ON ouj.order_id = ov.id
+		WHERE ov.user_id=$1 AND status > $2`, userId, query.GreaterThan)
+
+		if err == nil {
+			c.JSON(200, gin.H{"data" : orderList})
+		} else {
+			checkErr(err, "Select failed")
+		}
+	} else {
+		_, err := dbmap.Select(&orderList, `SELECT ov.id, ov.destination, ov.destination_lat as latitude, ov.destination_long as longitude, order_date,
+		pd.id as vendor_id, pd.nama as vendor_name,
+		kj.id as jasa_id, kj.jenis as jasa_name,
+		otp.total_price as price,
+		ouj.status
+		FROM ordervendor ov
+			JOIN providerdata pd ON pd.id = ov.provider_id
+			JOIN kategorijasa kj ON kj.id = pd.jasa_id
+			JOIN (SELECT order_id, SUM(service_price * qty) as total_price
+					FROM ordervendordetail WHERE order_id IN (SELECT id FROM ordervendor WHERE user_id=$1) GROUP BY order_id)
+				as otp ON otp.order_id = ov.id
+			JOIN (	SELECT order_id, MAX(status) as status FROM ordervendorjourney WHERE order_id IN (SELECT id FROM ordervendor WHERE user_id=$1) GROUP BY order_id)
+				as ouj ON ouj.order_id = ov.id
+		WHERE ov.user_id=$1`, userId)
+
+		if err == nil {
+			c.JSON(200, gin.H{"data" : orderList})
+		} else {
+			checkErr(err, "Select failed")
 		}
 	}
 }
