@@ -718,6 +718,7 @@ type OrderJourneyItem struct {
 	Id int64 `db:"id" json:"id"`
 	Status int `db:"status" json:"status"`
 	OrderDate int64 `db:"order_date" json:"order_date"`
+	JenisJasa string `db:"jenis_jasa" json:"jenis_jasa"`
 }
 
 type OrderDetailItem struct {
@@ -1577,9 +1578,11 @@ func GetOrderDetail(c *gin.Context) {
 
 	var orderJourney []OrderJourneyItem
 	_, errOrderJourney := dbmap.Select(&orderJourney,
-		`SELECT ovj.id, status, ov.order_date
+		`SELECT ovj.id, status, ov.order_date, jenis as jenis_jasa
 		FROM ordervendorjourney ovj
 			JOIN ordervendor ov ON ov.id = ovj.order_id
+			JOIN providerdata pd ON pd.id = ov.provider_id
+			JOIN kategorijasa kj ON kj.id = pd.jasa_id
 		WHERE ov.id=$1`, orderId)
 
 	var orderDetail []OrderDetailItem
