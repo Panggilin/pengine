@@ -1353,10 +1353,8 @@ func PostNewOrder(c *gin.Context) {
 	errUser := dbmap.SelectOne(&user, `SELECT id FROM useraccount WHERE id=$1`, userId)
 
 	if errProvider != nil {
-		checkErr(errProvider, "select failed")
 		c.JSON(400, gin.H{"error": "Penyedia Jasa tidak terdaftar atau tidak aktif"})
 	} else if errUser != nil {
-		checkErr(errUser, "select failed")
 		c.JSON(400, gin.H{"error": "User tidak terdaftar"})
 	} else {
 		if insert := db.QueryRow(`INSERT INTO ordervendor(provider_id,
