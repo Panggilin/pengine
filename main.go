@@ -15,7 +15,6 @@ import (
 	_ "github.com/lib/pq"
 	"time"
 	"strings"
-	"fmt"
 )
 
 // ========================= INITIALIZE
