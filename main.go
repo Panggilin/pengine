@@ -1344,8 +1344,6 @@ func PostNewOrder(c *gin.Context) {
 	var postTransaction PostTransaction
 	c.Bind(&postTransaction)
 
-	fmt.Printf("ID : %d", postTransaction.ProviderId)
-
 	var providerAccount ProviderAccount
 	errProvider := dbmap.SelectOne(&providerAccount,
 		`SELECT provider_id FROM provideraccount WHERE provider_id=$1`,
