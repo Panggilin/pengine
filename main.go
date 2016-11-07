@@ -120,6 +120,7 @@ func main() {
 		v1.GET("/profile/data/:provider_id", GetProfileProvider)
 		v1.POST("/order/new", PostNewOrder)
 		v1.GET("/order/me", GetUserOrder)
+		v1.GET("/order/detail/:order_id", GetOrderDetail)
 		v1.PUT("/user/profile/update", PutProfileUpdate)
 		v1.PUT("/user/devicetoken/update", PutDeviceTokenUpdate)
 		v1.GET("/user/me", GetUserProfile)
@@ -706,6 +707,25 @@ type OrderItemList struct {
 	Price int64 `db:"price" json:"price"`
 	Status int `db:"status" json:"status"`
 	OrderDate int64 `db:"order_date" json:"order_date"`
+}
+
+type Query struct {
+	LowerThan   int `form:"lower_than"`
+	GreaterThan int `form:"greater_than"`
+}
+
+type OrderJourneyItem struct {
+	Id int64 `db:"id" json:"id"`
+	Status int `db:"status" json:"status"`
+	OrderDate int64 `db:"order_date" json:"order_date"`
+}
+
+type OrderDetailItem struct {
+	JasaId int64 `db:"jasa_id" json:"jasa_id"`
+	ServiceName string `db:"service_name" json:"service_name"`
+	ServicePrice int64 `db:"service_price" json:"service_price"`
+	Qty string `db:"qty" json:"qty"`
+	ModifiedDate int64 `db:"modified_date" json:"modified_date"`
 }
 
 // ========================== FUNC
@@ -1458,11 +1478,6 @@ func PostNewOrder(c *gin.Context) {
 	}
 }
 
-type Query struct {
-	LowerThan   int `form:"lower_than"`
-	GreaterThan int `form:"greater_than"`
-}
-
 func GetUserOrder(c *gin.Context) {
 	userId := getUserIdFromToken(c)
 
@@ -1534,6 +1549,40 @@ func GetUserOrder(c *gin.Context) {
 		} else {
 			checkErr(err, "Select failed")
 		}
+	}
+}
+
+func GetOrderDetail(c *gin.Context) {
+	orderId := c.Params.ByName("order_id")
+
+	var providerData ProviderData
+	errProviderData := dbmap.SelectOne(&providerData,
+		`SELECT pd.id, nama, alamat
+		FROM providerdata pd
+			JOIN ordervendor ov ON ov.provider_id = pd.id
+		WHERE ov.id=$1`, orderId)
+
+	var orderJourney []OrderJourneyItem
+	_, errOrderJourney := dbmap.Select(&orderJourney,
+		`SELECT ovj.id, status, ov.order_date
+		FROM ordervendorjourney ovj
+			JOIN ordervendor ov ON ov.id = ovj.order_id
+		WHERE ov.id=$1`, orderId)
+
+	var orderDetail []OrderDetailItem
+	_, errOrderDetailItem := dbmap.Select(&orderDetail,
+		`SELECT jasa_id, service_name, service_price, qty, modified_date
+		FROM ordervendordetail WHERE order_id=$1`, orderId)
+
+	if errOrderJourney == nil && errOrderDetailItem == nil && errProviderData == nil{
+		c.JSON(200, gin.H{"journey" : orderJourney,
+			"items" : orderDetail,
+			"provider_id" : providerData.Id,
+			"provider_name" : providerData.Nama,
+			"provider_address" : providerData.Alamat,
+		})
+	} else {
+		c.JSON(400, gin.H{"error" : "Failed get order detail"})
 	}
 }
 
