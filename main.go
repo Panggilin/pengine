@@ -121,6 +121,7 @@ func main() {
 		v1.POST("/order/new", PostNewOrder)
 		v1.PUT("/user/profile/update", PutProfileUpdate)
 		v1.PUT("/user/devicetoken/update", PutDeviceTokenUpdate)
+		v1.GET("/user/me", GetUserProfile)
 	}
 	v1.Use(TokenAuthProviderMiddleware())
 	{
@@ -1784,4 +1785,12 @@ func getUserIdFromToken(c *gin.Context) int8 {
 	} else {
 		return -1
 	}
+}
+
+func GetUserProfile(c *gin.Context) {
+	userId := getUserIdFromToken(c)
+
+	userProfile := getUserProfile(userId)
+
+	c.JSON(200, userProfile)
 }
