@@ -481,6 +481,7 @@ type OrderVendorJourney struct {
 	Id      int64 `db:"id" json:"id"`
 	OrderId int64 `db:"order_id" json:"order_id"`
 	Status  int64 `db:"status"`
+	Date	int64 `db:"date" json:"date"`
 }
 
 /**
@@ -717,7 +718,7 @@ type Query struct {
 type OrderJourneyItem struct {
 	Id int64 `db:"id" json:"id"`
 	Status int `db:"status" json:"status"`
-	OrderDate int64 `db:"order_date" json:"order_date"`
+	Date int64 `db:"date" json:"date"`
 	JenisJasa string `db:"jenis_jasa" json:"jenis_jasa"`
 }
 
@@ -1437,10 +1438,11 @@ func PostNewOrder(c *gin.Context) {
 				orderVendorJourney := OrderVendorJourney{
 					OrderId: orderId,
 					Status:  0,
+					Date: time.Now().Unix(),
 				}
 
-				db.QueryRow(`INSERT INTO ordervendorjourney(order_id, status)
-			VALUES($1, $2)`, orderVendorJourney.OrderId, orderVendorJourney.Status)
+				db.QueryRow(`INSERT INTO ordervendorjourney(order_id, status, date)
+			VALUES($1, $2, $3)`, orderVendorJourney.OrderId, orderVendorJourney.Status, orderVendorJourney.Date)
 
 				// insert order tracking
 				orderTracking := OrderVendorTracking{
@@ -1578,7 +1580,7 @@ func GetOrderDetail(c *gin.Context) {
 
 	var orderJourney []OrderJourneyItem
 	_, errOrderJourney := dbmap.Select(&orderJourney,
-		`SELECT ovj.id, status, ov.order_date, jenis as jenis_jasa
+		`SELECT ovj.id, status, ovj.date, jenis as jenis_jasa
 		FROM ordervendorjourney ovj
 			JOIN ordervendor ov ON ov.id = ovj.order_id
 			JOIN providerdata pd ON pd.id = ov.provider_id
@@ -1608,9 +1610,9 @@ func PostNewOrderJourney(c *gin.Context) {
 	var orderVendorJourney OrderVendorJourney
 	c.Bind(&orderVendorJourney)
 
-	if insert := db.QueryRow(`INSERT INTO ordervendorjourney(order_id, status)
-	VALUES($1, $2)`,
-		orderVendorJourney.OrderId, orderVendorJourney.Status); insert != nil {
+	if insert := db.QueryRow(`INSERT INTO ordervendorjourney(order_id, status, date)
+	VALUES($1, $2, $3)`,
+		orderVendorJourney.OrderId, orderVendorJourney.Status, time.Now().Unix()); insert != nil {
 
 		c.JSON(200, gin.H{"status": "success"})
 	} else {
