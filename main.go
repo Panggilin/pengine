@@ -1918,7 +1918,7 @@ func PutProfileUpdate(c *gin.Context) {
 	userId := getUserIdFromToken(c)
 
 	if userId != -1 {
-		var recUserProfile UserProfile
+		var recUserProfile UserProfileResponse
 		err := dbmap.SelectOne(&recUserProfile, `SELECT * FROM userprofile WHERE user_id=$1`, userId)
 
 		if err == nil {
