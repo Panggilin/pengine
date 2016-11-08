@@ -115,6 +115,7 @@ func main() {
 		v1.GET("/provider/prices/:provider_id", GetProviderPriceList)
 		v1.POST("/provider/rating/add", PostAddedRating)
 		v1.GET("/rating/get/:provider_id", GetProviderRating)
+		v1.GET("/jobque/get/:provider_id", GetJobQueProvider)
 		v1.PUT("/provider/rating/edit", UpdateProviderRating)
 		v1.GET("/gallery/data/:provider_id", GetListImageGallery)
 		v1.GET("/profile/data/:provider_id", GetProfileProvider)
@@ -1247,6 +1248,38 @@ func GetProviderRating(c *gin.Context) {
 		c.JSON(200, gin.H{"data": providerRating})
 	} else {
 		checkErr(err, "Select failed")
+	}
+}
+
+type JobQueProvider struct {
+	OrderId int64 `db:"order_id" json:"order_id"`
+	CustomerName string `db:"customer_name" json:"customer_name"`
+	Status int `db:"status" json:"status"`
+	JenisJasa string `db:"jenis_jasa" json:"jenis_jasa"`
+	OrderDate int64 `db:"order_date" json:"order_date"`
+}
+
+func GetJobQueProvider(c *gin.Context) {
+	providerId := c.Params.ByName("provider_id")
+
+	var jobQueProvider []JobQueProvider
+	_, err := dbmap.Select(&jobQueProvider,
+		`SELECT ov.id as order_id,
+			up.full_name as customer_name,
+			ouj.status,
+			kjp.jenis_jasa,
+			ov.order_date
+		FROM ordervendor ov
+			JOIN userprofile up ON up.user_id = ov.user_id
+			JOIN (SELECT order_id, MAX(status) as status FROM ordervendorjourney GROUP BY order_id) as ouj ON ouj.order_id = ov.id
+			JOIN (SELECT kj.jenis as jenis_jasa, pd.id as provider_id FROM kategorijasa kj JOIN providerdata pd on pd.jasa_id = kj.id) as kjp ON kjp.provider_id = ov.provider_id
+		WHERE ov.provider_id=$1
+		ORDER BY ov.order_date ASC`, providerId)
+
+	if err == nil {
+		c.JSON(200, gin.H{"data" : jobQueProvider})
+	} else {
+		c.JSON(400, gin.H{"error" : "Failed get job que"})
 	}
 
 }
