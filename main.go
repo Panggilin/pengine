@@ -656,6 +656,16 @@ type UserProfile struct {
 	Address     string  `db:"address" json:"address"`
 	DOB         string  `db:"dob" json:"dob"`
 	PhoneNumber string  `db:"phone_number" json:"phone_number"`
+	Gender string `db:"gender" json:"gender"`
+}
+
+type UserProfileResponse struct {
+	UserId      int64    `db:"user_id" json:"user_id"`
+	FullName    string  `db:"full_name" json:"full_name"`
+	Address     string  `db:"address" json:"address"`
+	DOB         string  `db:"dob" json:"dob"`
+	PhoneNumber string  `db:"phone_number" json:"phone_number"`
+	Gender sql.NullString `db:"gender" json:"gender"`
 }
 
 /**
@@ -1773,8 +1783,8 @@ func loginWithRegisteredAccount(userAccount UserAccount, c *gin.Context) {
 	}
 }
 
-func getUserProfile(userId int64) UserProfile {
-	var userProfile UserProfile
+func getUserProfile(userId int64) UserProfileResponse {
+	var userProfile UserProfileResponse
 
 	dbmap.SelectOne(&userProfile, `SELECT * FROM userprofile WHERE user_id=$1`, userId)
 
@@ -1913,9 +1923,9 @@ func PutProfileUpdate(c *gin.Context) {
 
 		if err == nil {
 			if update := db.QueryRow(`UPDATE userprofile SET full_name=$1, address=$2,
-			dob=$3, phone_number=$4 WHERE user_id=$5`,
+			dob=$3, phone_number=$4, gender=$5 WHERE user_id=$6`,
 				userProfile.FullName, userProfile.Address,
-				userProfile.DOB, userProfile.PhoneNumber, userId);
+				userProfile.DOB, userProfile.PhoneNumber, userProfile.Gender, userId);
 			update != nil {
 
 				c.JSON(200, gin.H{"status" : "Success update data",
@@ -1925,14 +1935,15 @@ func PutProfileUpdate(c *gin.Context) {
 						Address: userProfile.Address,
 						DOB: userProfile.DOB,
 						PhoneNumber: userProfile.PhoneNumber,
+						Gender: userProfile.Gender,
 					},
 				})
 			}
 		} else {
 			if insert := db.QueryRow(`INSERT INTO userprofile(user_id, full_name, address,
-				dob, phone_number) VALUES($1, $2, $3, $4, $5)`, userId,
+				dob, phone_number, gender) VALUES($1, $2, $3, $4, $5, $6)`, userId,
 				userProfile.FullName, userProfile.Address,
-				userProfile.DOB, userProfile.PhoneNumber);
+				userProfile.DOB, userProfile.PhoneNumber, userProfile.Gender);
 			insert != nil {
 
 				c.JSON(200, gin.H{"status" : "Success update data",
@@ -1942,6 +1953,7 @@ func PutProfileUpdate(c *gin.Context) {
 						Address: userProfile.Address,
 						DOB: userProfile.DOB,
 						PhoneNumber: userProfile.PhoneNumber,
+						Gender: userProfile.Gender,
 					},
 				})
 			}
@@ -1984,5 +1996,12 @@ func GetUserProfile(c *gin.Context) {
 
 	userProfile := getUserProfile(userId)
 
-	c.JSON(200, userProfile)
+	c.JSON(200, UserProfile{
+		UserId: userProfile.UserId,
+		FullName: userProfile.FullName,
+		Address: userProfile.Address,
+		DOB: userProfile.DOB,
+		PhoneNumber: userProfile.PhoneNumber,
+		Gender: userProfile.Gender.String,
+	})
 }
