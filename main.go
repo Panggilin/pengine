@@ -1735,7 +1735,7 @@ func sendNotificationToCustomer(orderId int64, status int64) {
 		message := getMessageBasedStatusForCustomer(status)
 
 		// Create the message to be sent.
-		data := map[string]interface{}{ "message" : message }
+		data := map[string]interface{}{ "message" : message, "order_id" : orderId }
 		msg := gcm.NewMessage(data, userNotification.DeviceToken)
 
 		sender := &gcm.Sender{ ApiKey: "AIzaSyDBvQ9PW8UGs2SdHVHCURXr-QNMEunY_rM" }
