@@ -93,7 +93,10 @@ func checkErr(err error, msg string) {
 }
 
 func main() {
-	r := gin.Default()
+	r := gin.New()
+
+	r.Use(gin.Logger())
+
 	v1 := r.Group("api/v1")
 	{
 		v1.POST("/user/signin/email", PostSignInEmail)
@@ -104,40 +107,40 @@ func main() {
 		v1.PUT("/provider/inactive", InActiveProvider)
 		v1.PUT("/provider/active", ActiveProvider)
 		v1.POST("/jasa/create", PostCreateNewJasa)
-	}
-	v1.Use(TokenAuthUserMiddleware())
-	{
-		v1.GET("/providers", GetProviders)
-		v1.GET("/providers/near", GetNearProviderForMap)
-		v1.GET("/providers/search", GetProvidersByKeyword)
-		v1.GET("/provider/jasa/:jasa_id", GetProvidersByCategory)
-		v1.GET("/provider/data/:id", GetProvider)
-		v1.GET("/provider/prices/:provider_id", GetProviderPriceList)
-		v1.POST("/provider/rating/add", PostAddedRating)
-		v1.GET("/rating/get/:provider_id", GetProviderRating)
-		v1.GET("/jobque/get/:provider_id", GetJobQueProvider)
-		v1.PUT("/provider/rating/edit", UpdateProviderRating)
-		v1.GET("/gallery/data/:provider_id", GetListImageGallery)
-		v1.GET("/profile/data/:provider_id", GetProfileProvider)
-		v1.POST("/order/new", PostNewOrder)
-		v1.GET("/order/me", GetUserOrder)
-		v1.GET("/order/detail/:order_id", GetOrderDetail)
-		v1.PUT("/user/profile/update", PutProfileUpdate)
-		v1.PUT("/user/devicetoken/update", PutDeviceTokenUpdate)
-		v1.GET("/user/me", GetUserProfile)
-	}
-	v1.Use(TokenAuthProviderMiddleware())
-	{
-		v1.POST("/provider/mylocation", PostMyLocationProvider)
-		v1.POST("/provider/price/add", PostAddProviderPriceList)
-		v1.GET("/price/data/:provider_id/:id", GetProviderPrice)
-		v1.PUT("/provider/price/edit", UpdateProviderPrice)
-		v1.POST("/provider/gallery/add", PostProviderImageGallery)
-		v1.DELETE("/gallery/delete", DeleteImageGallery)
-		v1.POST("/provider/profile/add", PostProfileProvider)
-		v1.PUT("/provider/edit/:provider_id", UpdateProviderData)
-		v1.POST("/order/status", PostNewOrderJourney)
-		v1.PUT("/order/tracking", UpdateOrderTracking)
+
+		v1.GET("/providers", TokenAuthUserMiddleware(), GetProviders)
+		v1.GET("/providers/near", TokenAuthUserMiddleware(), GetNearProviderForMap)
+		v1.GET("/providers/search", TokenAuthUserMiddleware(), GetProvidersByKeyword)
+		v1.GET("/provider/jasa/:jasa_id", TokenAuthUserMiddleware(), GetProvidersByCategory)
+		v1.GET("/provider/data/:id", TokenAuthUserMiddleware(), GetProvider)
+		v1.GET("/provider/prices/:provider_id", TokenAuthUserMiddleware(), GetProviderPriceList)
+		v1.POST("/provider/rating/add", TokenAuthUserMiddleware(), PostAddedRating)
+		v1.GET("/rating/get/:provider_id", TokenAuthUserMiddleware(), GetProviderRating)
+		v1.GET("/jobque/get/:provider_id", TokenAuthUserMiddleware(), GetJobQueProvider)
+		v1.PUT("/provider/rating/edit", TokenAuthUserMiddleware(), UpdateProviderRating)
+		v1.GET("/gallery/data/:provider_id", TokenAuthUserMiddleware(), GetListImageGallery)
+		v1.GET("/profile/data/:provider_id", TokenAuthUserMiddleware(), GetProfileProvider)
+		v1.POST("/order/new", TokenAuthUserMiddleware(), PostNewOrder)
+		v1.GET("/order/me", TokenAuthUserMiddleware(), GetUserOrder)
+		v1.GET("/order/detail/:order_id", TokenAuthUserMiddleware(), GetOrderDetail)
+		v1.PUT("/user/profile/update", TokenAuthUserMiddleware(), PutProfileUpdate)
+		v1.PUT("/user/devicetoken/update", TokenAuthUserMiddleware(), PutDeviceTokenUpdate)
+		v1.GET("/user/me", TokenAuthUserMiddleware(), GetUserProfile)
+
+		v1.POST("/provider/mylocation", TokenAuthProviderMiddleware(), PostMyLocationProvider)
+		v1.POST("/provider/price/add", TokenAuthProviderMiddleware(), PostAddProviderPriceList)
+		v1.GET("/price/me", TokenAuthProviderMiddleware(), GetProviderPrice)
+		v1.PUT("/provider/price/edit", TokenAuthProviderMiddleware(), UpdateProviderPrice)
+		v1.POST("/provider/gallery/add", TokenAuthProviderMiddleware(), PostProviderImageGallery)
+		v1.DELETE("/gallery/delete", TokenAuthProviderMiddleware(), DeleteImageGallery)
+		v1.POST("/provider/profile/add", TokenAuthProviderMiddleware(), PostProfileProvider)
+		v1.PUT("/provider/edit/", TokenAuthProviderMiddleware(), UpdateProviderData)
+		v1.POST("/order/status", TokenAuthProviderMiddleware(), PostNewOrderJourney)
+		v1.PUT("/order/tracking", TokenAuthProviderMiddleware(), UpdateOrderTracking)
+		v1.GET("/rating/me", TokenAuthProviderMiddleware(), GetProviderRatingProvider)
+		v1.GET("/provider/quickinfo", TokenAuthProviderMiddleware(), GetProviderQuickInfo)
+		v1.GET("/provider/order/me", TokenAuthProviderMiddleware(), GetProviderOrder)
+		v1.GET("/provider/order/detail/:order_id", TokenAuthProviderMiddleware(), GetProviderOrderDetail)
 	}
 
 	r.Run(GetPort())
@@ -721,6 +724,21 @@ type OrderItemList struct {
 	OrderDate int64 `db:"order_date" json:"order_date"`
 }
 
+type OrderItemListProvider struct {
+	Id int64 `db:"id" json:"id"`
+	JasaId int64 `db:"jasa_id" json:"jasa_id"`
+	JasaName string `db:"jasa_name" json:"jasa_name"`
+	CustomerId int64 `db:"customer_id" json:"customer_id"`
+	CustomerName string `db:"customer_name" json:"customer_name"`
+	CustomerDomisili string `db:"customer_domisili" json:"customer_domisili"`
+	Destination string `db:"destination" json:"destination"`
+	Latitude float64 `db:"latitude" json:"latitude"`
+	Longitude float64 `db:"longitude" json:"longitude"`
+	Price int64 `db:"price" json:"price"`
+	Status int `db:"status" json:"status"`
+	OrderDate int64 `db:"order_date" json:"order_date"`
+}
+
 type Query struct {
 	LowerThan   int `form:"lower_than"`
 	GreaterThan int `form:"greater_than"`
@@ -981,11 +999,15 @@ func PostSignInProvider(c *gin.Context) {
 
 		providerData := getProviderData(recProviderAccount.ProviderId)
 
+		kategoryJasa := getProviderJasa(recProviderAccount.ProviderId)
+
 		loginAccount := ProviderLoginAccount{
 			ProviderId: recProviderAccount.ProviderId,
 			FullName: providerData.Nama,
+			JasaId: kategoryJasa.Id,
+			JasaName: kategoryJasa.Jenis,
 			PhoneNumber: providerData.PhoneNumber,
-			Email: recProviderAccount.Email,
+			Email: providerAccount.Email,
 			AuthToken: AuthTokenRes{
 				Token: authTokenProvider.AuthToken,
 				ExpiredDate: authTokenProvider.ExpireDate,
@@ -1095,6 +1117,9 @@ func ActiveProvider(c *gin.Context) {
 }
 
 func PostMyLocationProvider(c *gin.Context) {
+
+	providerId := getProviderIdFromToken(c)
+
 	// Post my location for provider
 	var providerLocation ProviderLocation
 	c.Bind(&providerLocation)
@@ -1109,7 +1134,7 @@ func PostMyLocationProvider(c *gin.Context) {
 		if update := db.QueryRow(`UPDATE providerlocation SET latitude=$1,
 			longitude=$2 WHERE provider_id=$3`,
 			providerLocation.Latitude, providerLocation.Longitude,
-			providerLocation.ProviderId); update != nil {
+			providerId); update != nil {
 			c.JSON(200, gin.H{"status": "success updated my location"})
 		}
 	} else {
@@ -1117,7 +1142,7 @@ func PostMyLocationProvider(c *gin.Context) {
 		if insert := db.QueryRow(`INSERT INTO
 			providerlocation(provider_id, latitude, longitude)
 		VALUES($1, $2, $3)`,
-			providerLocation.ProviderId, providerLocation.Latitude,
+			providerId, providerLocation.Latitude,
 			providerLocation.Longitude); insert != nil {
 			c.JSON(200, gin.H{"status": "success saved my location"})
 		}
@@ -1135,25 +1160,19 @@ func PostCreateNewJasa(c *gin.Context) {
 }
 
 func PostAddProviderPriceList(c *gin.Context) {
+	providerId := getProviderIdFromToken(c)
+
 	var providerPriceItem ProviderPriceList
 	c.Bind(&providerPriceItem)
 
-	var recProvider ProviderData
-	err := dbmap.SelectOne(&recProvider, `SELECT * FROM providerdata WHERE id=$1`,
-		providerPriceItem.ProviderId)
-
-	if err == nil {
-		if insert := db.QueryRow(`INSERT INTO providerpricelist(provider_id,
+	if insert := db.QueryRow(`INSERT INTO providerpricelist(provider_id,
 			service_name, service_price, negotiable)
 		VALUES($1, $2, $3, $4)`,
-			providerPriceItem.ProviderId,
-			providerPriceItem.ServiceName,
-			providerPriceItem.ServicePrice,
-			providerPriceItem.Negotiable); insert != nil {
-			c.JSON(200, gin.H{"status": "Success add new price"})
-		}
-	} else {
-		checkErr(err, "Select failed")
+		providerId,
+		providerPriceItem.ServiceName,
+		providerPriceItem.ServicePrice,
+		providerPriceItem.Negotiable); insert != nil {
+		c.JSON(200, gin.H{"status": "Success add new price"})
 	}
 
 }
@@ -1173,14 +1192,13 @@ func GetProviderPriceList(c *gin.Context) {
 }
 
 func GetProviderPrice(c *gin.Context) {
-	providerId := c.Params.ByName("provider_id")
-	id := c.Params.ByName("id")
+
+	providerId := getProviderIdFromToken(c)
 
 	var providerPrice ProviderPriceList
 
 	err := dbmap.SelectOne(&providerPrice, `SELECT *
-		FROM providerpricelist WHERE id=$1 AND provider_id=$2`, id,
-		providerId)
+		FROM providerpricelist WHERE provider_id=$1`, providerId)
 
 	if err == nil {
 		c.JSON(200, providerPrice)
@@ -1190,23 +1208,17 @@ func GetProviderPrice(c *gin.Context) {
 }
 
 func UpdateProviderPrice(c *gin.Context) {
+	providerId := getProviderIdFromToken(c)
+
 	var providerPrice ProviderPriceList
 	c.Bind(&providerPrice)
 
-	var recProviderPrice ProviderPriceList
-	err := dbmap.SelectOne(&recProviderPrice, `SELECT * FROM providerpricelist
-		WHERE provider_id=$1`,
-		providerPrice.ProviderId)
 
-	if err == nil {
-		if update := db.QueryRow(`UPDATE providerpricelist
+	if update := db.QueryRow(`UPDATE providerpricelist
 			SET service_name=$1, service_price=$2
 			WHERE provider_id=$3`, providerPrice.ServiceName, providerPrice.ServicePrice,
-			providerPrice.ProviderId); update != nil {
-			c.JSON(200, gin.H{"status": "Update success"})
-		}
-	} else {
-		checkErr(err, "Select failed")
+		providerId); update != nil {
+		c.JSON(200, gin.H{"status": "Update success"})
 	}
 }
 
@@ -1258,6 +1270,61 @@ func GetProviderRating(c *gin.Context) {
 		c.JSON(200, gin.H{"data": providerRating})
 	} else {
 		checkErr(err, "Select failed")
+	}
+}
+
+func GetProviderRatingProvider(c *gin.Context) {
+	providerId := getProviderIdFromToken(c)
+
+	var providerRating []ProviderRating
+	_, err := dbmap.Select(&providerRating, `SELECT * FROM providerrating
+		WHERE provider_id=$1`, providerId)
+
+	if err == nil {
+		c.JSON(200, gin.H{"data": providerRating})
+	} else {
+		checkErr(err, "Select failed")
+	}
+}
+
+func GetProviderQuickInfo(c *gin.Context) {
+	providerId := getProviderIdFromToken(c)
+
+	var providerPrice []ProviderPriceList
+	_, errPrice := dbmap.Select(&providerPrice, `SELECT *
+		FROM providerpricelist WHERE provider_id=$1`, providerId)
+
+	var orders []OrderItemListProvider
+	_, errOrderList := dbmap.Select(&orders, `SELECT ov.id, ov.destination, ov.destination_lat as latitude, ov.destination_long as longitude, order_date,
+		up.user_id as customer_id, up.full_name as customer_name, up.address as customer_domisili,
+		kj.id as jasa_id, kj.jenis as jasa_name,
+		otp.total_price as price,
+		ouj.status
+		FROM ordervendor ov
+			JOIN userprofile up ON up.user_id = ov.user_id
+			JOIN providerdata pd ON pd.id = ov.provider_id
+			JOIN kategorijasa kj ON kj.id = pd.jasa_id
+			JOIN (SELECT order_id, SUM(service_price * qty) as total_price
+					FROM ordervendordetail WHERE order_id IN (SELECT id FROM ordervendor WHERE provider_id=$1) GROUP BY order_id)
+				as otp ON otp.order_id = ov.id
+			JOIN (SELECT order_id, MAX(status) as status FROM ordervendorjourney WHERE order_id IN (SELECT id FROM ordervendor WHERE provider_id=$1) GROUP BY order_id)
+				as ouj ON ouj.order_id = ov.id
+		WHERE ov.provider_id=$1`, providerId)
+
+	var providerRating []ProviderRating
+	_, errRating := dbmap.Select(&providerRating, `SELECT * FROM providerrating
+		WHERE provider_id=$1`, providerId)
+
+	if errPrice == nil && errOrderList == nil && errRating == nil {
+		c.JSON(200, gin.H{
+			"count_jasa" : len(providerPrice),
+			"count_order" : len(orders),
+			"count_review" : len(providerRating),
+		})
+	} else {
+		checkErr(errPrice, "Select price failed");
+		checkErr(errOrderList, "Select order list failed");
+		checkErr(errRating, "Select rating failed");
 	}
 }
 
@@ -1319,40 +1386,28 @@ func UpdateProviderRating(c *gin.Context) {
 }
 
 func PostProviderImageGallery(c *gin.Context) {
+
+	providerId := getProviderIdFromToken(c)
+
 	var providerGallery ProviderGallery
 	c.Bind(&providerGallery)
 
-	var recProvider ProviderData
-	err := dbmap.SelectOne(&recProvider, `SELECT * FROM providerdata
-		WHERE id=$1`, providerGallery.ProviderId)
-
-	if err == nil {
-		if insert := db.QueryRow(`INSERT INTO providergallery(provider_id, image)
-			VALUES($1, $2)`, providerGallery.ProviderId, providerGallery.Image); insert != nil {
-			c.JSON(200, gin.H{"status": "Success insert new image to gallery"})
-		}
-	} else {
-		checkErr(err, "Select failed")
+	if insert := db.QueryRow(`INSERT INTO providergallery(provider_id, image)
+			VALUES($1, $2)`, providerId, providerGallery.Image); insert != nil {
+		c.JSON(200, gin.H{"status": "Success insert new image to gallery"})
 	}
 }
 
 func DeleteImageGallery(c *gin.Context) {
+	providerId := getProviderIdFromToken(c)
+
 	var providerGallery ProviderGallery
 	c.Bind(&providerGallery)
 
-	var recProviderGallery ProviderGallery
-	err := dbmap.SelectOne(&recProviderGallery, `SELECT * FROM providergallery
-		WHERE id=$1 AND
-		provider_id=$2`, providerGallery.Id, providerGallery.ProviderId)
-
-	if err == nil {
-		if delete := db.QueryRow(`DELETE FROM providergallery
+	if delete := db.QueryRow(`DELETE FROM providergallery
 			WHERE id=$1 AND provider_id=$2`,
-			providerGallery.Id, providerGallery.ProviderId); delete != nil {
-			c.JSON(200, gin.H{"status": "Delete success"})
-		}
-	} else {
-		checkErr(err, "Select failed")
+		providerGallery.Id, providerId); delete != nil {
+		c.JSON(200, gin.H{"status": "Delete success"})
 	}
 }
 
@@ -1386,40 +1441,32 @@ func GetProfileProvider(c *gin.Context) {
 }
 
 func PostProfileProvider(c *gin.Context) {
+	providerId := getProviderIdFromToken(c)
+
 	var profileProvider ProviderProfileImage
 	c.Bind(&profileProvider)
 
-	var recProvider ProviderData
-	err := dbmap.SelectOne(&recProvider, `SELECT * FROM providerdata WHERE id=$1`,
-		profileProvider.ProviderId)
+	var recProfile ProviderProfileImage
+	err := dbmap.SelectOne(&recProfile, `SELECT * FROM providerprofileimage
+				WHERE provider_id=$1`, providerId)
 
 	if err == nil {
-
-		var recProfile ProviderProfileImage
-		err := dbmap.SelectOne(&recProfile, `SELECT * FROM providerprofileimage
-				WHERE provider_id=$1`, profileProvider.ProviderId)
-
-		if err == nil {
-			if update := db.QueryRow(`UPDATE providerprofileimage
+		if update := db.QueryRow(`UPDATE providerprofileimage
 					SET profile_pict=$1, profile_bg=$2 WHERE provider_id=$3`,
-				profileProvider.ProfilePict,
-				profileProvider.ProfileBg,
-				profileProvider.ProviderId); update != nil {
-				c.JSON(200, gin.H{"status": "update success"})
-			}
-		} else {
-			if insert := db.QueryRow(`INSERT INTO
+			profileProvider.ProfilePict,
+			profileProvider.ProfileBg,
+			providerId); update != nil {
+			c.JSON(200, gin.H{"status": "update success"})
+		}
+	} else {
+		if insert := db.QueryRow(`INSERT INTO
 				providerprofileimage(provider_id, profile_pict, profile_bg)
 				VALUES($1, $2, $3)`,
-				profileProvider.ProviderId,
-				profileProvider.ProfilePict,
-				profileProvider.ProfileBg); insert != nil {
-				c.JSON(200, gin.H{"status": "Insert new profile pict and bg"})
-			}
+			providerId,
+			profileProvider.ProfilePict,
+			profileProvider.ProfileBg); insert != nil {
+			c.JSON(200, gin.H{"status": "Insert new profile pict and bg"})
 		}
-
-	} else {
-		checkErr(err, "Select failed")
 	}
 }
 
@@ -1799,6 +1846,15 @@ func getProviderData(providerId int64) ProviderData {
 	return providerData
 }
 
+func getProviderJasa(providerId int64) KategoriJasa {
+	var kategoriJasa KategoriJasa
+
+	dbmap.SelectOne(&kategoriJasa, `SELECT kj.id, kj.jenis FROM kategorijasa kj
+	JOIN providerdata pd ON kj.id = pd.jasa_id WHERE pd.id=$1`, providerId)
+
+	return kategoriJasa;
+}
+
 func createAuthTokenProvider(recProviderAccount ProviderAccount) AuthTokenProvider {
 	expiredTime := time.Now().Add(time.Hour * 24).Unix()
 
@@ -1991,6 +2047,19 @@ func getUserIdFromToken(c *gin.Context) int64 {
 	}
 }
 
+func getProviderIdFromToken(c *gin.Context) int64 {
+	tokenStr := getTokenFromHeader(c)
+
+	var authToken AuthTokenProvider
+	err := dbmap.SelectOne(&authToken, `SELECT provider_id FROM authtokenprovider WHERE auth_token=$1`, tokenStr)
+
+	if err == nil {
+		return authToken.ProviderId
+	} else {
+		return -1
+	}
+}
+
 func GetUserProfile(c *gin.Context) {
 	userId := getUserIdFromToken(c)
 
@@ -2004,4 +2073,114 @@ func GetUserProfile(c *gin.Context) {
 		PhoneNumber: userProfile.PhoneNumber,
 		Gender: userProfile.Gender.String,
 	})
+}
+
+func GetProviderOrder(c *gin.Context) {
+	providerId := getProviderIdFromToken(c)
+
+	var query Query
+	c.Bind(&query)
+
+	var orderList []OrderItemListProvider
+
+	if query.LowerThan > 0 {
+		_, err := dbmap.Select(&orderList, `SELECT ov.id, ov.destination, ov.destination_lat as latitude, ov.destination_long as longitude, order_date,
+		up.user_id as customer_id, up.full_name as customer_name, up.address as customer_domisili,
+		kj.id as jasa_id, kj.jenis as jasa_name,
+		otp.total_price as price,
+		ouj.status
+		FROM ordervendor ov
+			JOIN userprofile up ON up.user_id = ov.user_id
+			JOIN providerdata pd ON pd.id = ov.provider_id
+			JOIN kategorijasa kj ON kj.id = pd.jasa_id
+			JOIN (SELECT order_id, SUM(service_price * qty) as total_price
+					FROM ordervendordetail WHERE order_id IN (SELECT id FROM ordervendor WHERE provider_id=$1) GROUP BY order_id)
+				as otp ON otp.order_id = ov.id
+			JOIN (SELECT order_id, MAX(status) as status FROM ordervendorjourney WHERE order_id IN (SELECT id FROM ordervendor WHERE provider_id=$1) GROUP BY order_id)
+				as ouj ON ouj.order_id = ov.id
+		WHERE ov.provider_id=$1 AND status < $2 ORDER BY order_date ASC`, providerId, query.LowerThan)
+
+		if err == nil {
+			c.JSON(200, gin.H{"data" : orderList})
+		} else {
+			checkErr(err, "Select failed")
+		}
+	} else if query.GreaterThan > 0 {
+		_, err := dbmap.Select(&orderList, `SELECT ov.id, ov.destination, ov.destination_lat as latitude, ov.destination_long as longitude, order_date,
+		up.user_id as customer_id, up.full_name as customer_name, up.address as customer_domisili,
+		kj.id as jasa_id, kj.jenis as jasa_name,
+		otp.total_price as price,
+		ouj.status
+		FROM ordervendor ov
+			JOIN userprofile up ON up.user_id = ov.user_id
+			JOIN providerdata pd ON pd.id = ov.provider_id
+			JOIN kategorijasa kj ON kj.id = pd.jasa_id
+			JOIN (SELECT order_id, SUM(service_price * qty) as total_price
+					FROM ordervendordetail WHERE order_id IN (SELECT id FROM ordervendor WHERE provider_id=$1) GROUP BY order_id)
+				as otp ON otp.order_id = ov.id
+			JOIN (SELECT order_id, MAX(status) as status FROM ordervendorjourney WHERE order_id IN (SELECT id FROM ordervendor WHERE provider_id=$1) GROUP BY order_id)
+				as ouj ON ouj.order_id = ov.id
+		WHERE ov.provider_id=$1 AND status > $2 ORDER BY order_date ASC`, providerId, query.GreaterThan)
+
+		if err == nil {
+			c.JSON(200, gin.H{"data" : orderList})
+		} else {
+			checkErr(err, "Select failed")
+		}
+	} else {
+		_, err := dbmap.Select(&orderList, `SELECT ov.id, ov.destination, ov.destination_lat as latitude, ov.destination_long as longitude, order_date,
+		up.user_id as customer_id, up.full_name as customer_name, up.address as customer_domisili,
+		kj.id as jasa_id, kj.jenis as jasa_name,
+		otp.total_price as price,
+		ouj.status
+		FROM ordervendor ov
+			JOIN userprofile up ON up.user_id = ov.user_id
+			JOIN providerdata pd ON pd.id = ov.provider_id
+			JOIN kategorijasa kj ON kj.id = pd.jasa_id
+			JOIN (SELECT order_id, SUM(service_price * qty) as total_price
+					FROM ordervendordetail WHERE order_id IN (SELECT id FROM ordervendor WHERE provider_id=$1) GROUP BY order_id)
+				as otp ON otp.order_id = ov.id
+			JOIN (SELECT order_id, MAX(status) as status FROM ordervendorjourney WHERE order_id IN (SELECT id FROM ordervendor WHERE provider_id=$1) GROUP BY order_id)
+				as ouj ON ouj.order_id = ov.id
+		WHERE ov.provider_id=$1 ORDER BY order_date ASC`, providerId)
+
+		if err == nil {
+			c.JSON(200, gin.H{"data" : orderList})
+		} else {
+			checkErr(err, "Select failed")
+		}
+	}
+}
+
+func GetProviderOrderDetail(c *gin.Context) {
+	orderId := c.Params.ByName("order_id")
+
+	var orderItem OrderItemListProvider
+	err := dbmap.SelectOne(&orderItem, `SELECT ov.id, ov.destination, ov.destination_lat as latitude, ov.destination_long as longitude, order_date,
+		up.user_id as customer_id, up.full_name as customer_name, up.address as customer_domisili,
+		kj.id as jasa_id, kj.jenis as jasa_name,
+		otp.total_price as price,
+		ouj.status
+		FROM ordervendor ov
+			JOIN userprofile up ON up.user_id = ov.user_id
+			JOIN providerdata pd ON pd.id = ov.provider_id
+			JOIN kategorijasa kj ON kj.id = pd.jasa_id
+			JOIN (SELECT order_id, SUM(service_price * qty) as total_price
+					FROM ordervendordetail GROUP BY order_id)
+				as otp ON otp.order_id = ov.id
+			JOIN (SELECT order_id, MAX(status) as status FROM ordervendorjourney GROUP BY order_id)
+				as ouj ON ouj.order_id = ov.id
+		WHERE ov.id=$1`, orderId)
+
+	var orderDetail []OrderDetailItem
+	_, errOrderDetailItem := dbmap.Select(&orderDetail,
+		`SELECT jasa_id, service_name, service_price, qty, modified_date
+		FROM ordervendordetail WHERE order_id=$1`, orderId)
+
+	if err == nil && errOrderDetailItem == nil {
+		c.JSON(200, gin.H { "order_info" : orderItem, "orders" : orderDetail })
+	} else {
+		checkErr(err, "select info failed")
+		checkErr(errOrderDetailItem, "select detail failed")
+	}
 }
