@@ -15,6 +15,9 @@ import (
 	_ "github.com/lib/pq"
 	"time"
 	"strings"
+
+	"github.com/alexjlockwood/gcm"
+	"fmt"
 )
 
 // ========================= INITIALIZE
@@ -1571,6 +1574,8 @@ func PostNewOrder(c *gin.Context) {
 
 				// send notification to vendor
 
+				sendNotificationToProvider(orderId, 0)
+
 				c.JSON(200, gin.H{"status": "Success order"})
 			} else {
 				checkErr(err, "Insert transaction failed")
@@ -1704,12 +1709,94 @@ func PostNewOrderJourney(c *gin.Context) {
 	VALUES($1, $2, $3)`,
 		orderVendorJourney.OrderId, orderVendorJourney.Status, time.Now().Unix()); insert != nil {
 
+		sendNotificationToCustomer(orderVendorJourney.OrderId, orderVendorJourney.Status)
+
 		c.JSON(200, gin.H{"status": "success"})
 	} else {
 		c.JSON(400, gin.H{"error": "Failed update order status"})
 	}
 
 }
+
+type UserNotification struct {
+	AccountId int64 `db:"account_id" json:"account_id"`
+	DeviceToken string `db:"device_token" json:"device_token"`
+}
+
+func sendNotificationToCustomer(orderId int64, status int64) {
+
+	var userNotification UserNotification
+	err := dbmap.SelectOne(&userNotification, `SELECT ov.user_id as account_id, ua.device_token
+	 	FROM ordervendor ov
+	 	 JOIN useraccount ua ON ua.id = ov.user_id WHERE ov.id=$1`, orderId)
+
+	if err == nil {
+
+		message := getMessageBasedStatusForCustomer(status)
+
+		// Create the message to be sent.
+		data := map[string]interface{}{ "message" : message }
+		msg := gcm.NewMessage(data, userNotification.DeviceToken)
+
+		sender := &gcm.Sender{ ApiKey: "AIzaSyDBvQ9PW8UGs2SdHVHCURXr-QNMEunY_rM" }
+
+		// Send the message and receive the response after at most two retries.
+		_, err := sender.Send(msg, 2)
+
+		if err != nil {
+			fmt.Printf("Send failed", err)
+			return
+		}
+	} else {
+		fmt.Printf("Select failed", err)
+	}
+}
+
+func sendNotificationToProvider(orderId int64, status int64) {
+	var userNotification UserNotification
+	err := dbmap.SelectOne(&userNotification, `SELECT ov.provider_id as account_id, up.device_token
+	 	FROM ordervendor ov
+	 	 JOIN provideraccount pa ON pa.id = ov.provider_id WHERE ov.id=$1`, orderId)
+
+	if err == nil {
+
+		// Create the message to be sent.
+		data := map[string]interface{}{ "message" : "Anda mendapatkan pesanan baru." }
+		msg := gcm.NewMessage(data, userNotification.DeviceToken)
+
+		sender := &gcm.Sender{ApiKey: "AIzaSyAg33A5YvBegDqgbIgU6hH4jdbb45B7UaM"}
+
+		// Send the message and receive the response after at most two retries.
+		_, err := sender.Send(msg, 2)
+
+		if err != nil {
+			fmt.Printf("Send failed", err)
+			return
+		}
+	} else {
+		fmt.Printf("Select failed", err)
+	}
+}
+
+func getMessageBasedStatusForCustomer(status int64) string {
+	switch status {
+	case 0:
+		return "Pesanan menunggu konfirmasi.";
+	case 1:
+		return "Pesanan anda telah diterima. Penyedia jasa akan segera menuju lokasi Anda.";
+	case 2:
+		return "Penyedia jasa sedang menuju lokasi Anda.";
+	case 3:
+		return "Penyedia jasa telah tiba dilokasi Anda.";
+	case 4:
+		return  "Pekerjaan dimulai";
+	case 5:
+		return "Pekerjaan selesai. Terima kasih telah menggunakan jasa Kami. Semoga pelayanan kami memuaskan Anda. Jika Anda berkenan, mohon berikan penilaian Anda ketika menggunakan layana Kami.";
+	}
+
+	return "";
+}
+
 
 func UpdateOrderTracking(c *gin.Context) {
 	var orderVendorTracking OrderVendorTracking

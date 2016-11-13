@@ -7,6 +7,10 @@
 	],
 	"Deps": [
 		{
+			"ImportPath": "github.com/alexjlockwood/gcm",
+			"Rev": "2407bc782264326a3d4c71dd1ebeb8ab75221923"
+		},
+		{
 			"ImportPath": "github.com/dgrijalva/jwt-go",
 			"Comment": "v3.0.0-10-g9ed569b",
 			"Rev": "9ed569b5d1ac936e6494082958d63a6aa4fff99a"
