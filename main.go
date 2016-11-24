@@ -1219,9 +1219,9 @@ func UpdateProviderPrice(c *gin.Context) {
 
 
 	if update := db.QueryRow(`UPDATE providerpricelist
-			SET service_name=$1, service_price=$2
-			WHERE id=$3 AND provider_id=$4`, providerPrice.ServiceName, providerPrice.ServicePrice,
-		providerPrice.Id, providerId); update != nil {
+			SET service_name=$1, service_price=$2, negotiable=$3
+			WHERE id=$4 AND provider_id=$5`, providerPrice.ServiceName, providerPrice.ServicePrice,
+		providerPrice.Negotiable, providerPrice.Id, providerId); update != nil {
 		c.JSON(200, gin.H{"status": "Update success"})
 	}
 }
