@@ -136,6 +136,7 @@ func main() {
 		v1.PUT("/provider/price/edit", TokenAuthProviderMiddleware(), UpdateProviderPrice)
 		v1.POST("/provider/gallery/add", TokenAuthProviderMiddleware(), PostProviderImageGallery)
 		v1.DELETE("/gallery/delete", TokenAuthProviderMiddleware(), DeleteImageGallery)
+		v1.DELETE("/price/delete/:service_id", TokenAuthProviderMiddleware(), DeleteService)
 		v1.POST("/provider/profile/add", TokenAuthProviderMiddleware(), PostProfileProvider)
 		v1.PUT("/provider/edit/", TokenAuthProviderMiddleware(), UpdateProviderData)
 		v1.POST("/order/status", TokenAuthProviderMiddleware(), PostNewOrderJourney)
@@ -1411,6 +1412,17 @@ func DeleteImageGallery(c *gin.Context) {
 			WHERE id=$1 AND provider_id=$2`,
 		providerGallery.Id, providerId); delete != nil {
 		c.JSON(200, gin.H{"status": "Delete success"})
+	}
+}
+
+func DeleteService(c *gin.Context) {
+	providerId := getProviderIdFromToken(c)
+	serviceId := c.Params.ByName("service_id")
+
+	if delete := db.QueryRow(`DELETE FROM providerpricelist
+	WHERE id=$1 AND provider_id=$2`, serviceId, providerId);
+		delete != nil {
+			c.JSON(200, gin.H{"status": "Delete success"})
 	}
 }
 
