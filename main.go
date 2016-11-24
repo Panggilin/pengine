@@ -174,7 +174,7 @@ func TokenAuthProviderMiddleware() gin.HandlerFunc {
 				WHERE auth_token=$1`, tokenStr)
 
 			if err != nil {
-				c.JSON(401, gin.H{"error" : "Unauthorize request. Please check your header request, and make sure include Authorization token in your request."})
+				c.JSON(401, gin.H{"error" : "Unauthorize request. Invalid auth token."})
 				c.Abort()
 				return
 			}
@@ -1198,13 +1198,13 @@ func GetProviderPrice(c *gin.Context) {
 
 	providerId := getProviderIdFromToken(c)
 
-	var providerPrice ProviderPriceList
+	var providerPrice []ProviderPriceList
 
-	err := dbmap.SelectOne(&providerPrice, `SELECT *
+	_, err := dbmap.Select(&providerPrice, `SELECT *
 		FROM providerpricelist WHERE provider_id=$1`, providerId)
 
 	if err == nil {
-		c.JSON(200, providerPrice)
+		c.JSON(200, gin.H{"data":providerPrice})
 	} else {
 		checkErr(err, "Select failed")
 	}
