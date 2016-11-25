@@ -1799,17 +1799,23 @@ func sendNotificationToProvider(orderId int64, status int64) {
 func getMessageBasedStatusForCustomer(status int64) string {
 	switch status {
 	case 0:
-		return "Pesanan menunggu konfirmasi.";
+		return "Pesanan menunggu konfirmasi."
 	case 1:
-		return "Pesanan anda telah diterima. Penyedia jasa akan segera menuju lokasi Anda.";
+		return "Pesanan anda telah diterima. Penyedia jasa akan segera menuju lokasi Anda."
 	case 2:
-		return "Penyedia jasa sedang menuju lokasi Anda.";
+		return "Penyedia jasa sedang menuju lokasi Anda."
 	case 3:
-		return "Penyedia jasa telah tiba dilokasi Anda.";
+		return "Penyedia jasa telah tiba dilokasi Anda."
 	case 4:
-		return  "Pekerjaan dimulai";
+		return  "Pekerjaan dimulai."
 	case 5:
-		return "Pekerjaan selesai. Terima kasih telah menggunakan jasa Kami. Semoga pelayanan kami memuaskan Anda. Jika Anda berkenan, mohon berikan penilaian Anda ketika menggunakan layana Kami.";
+		return "Pekerjaan selesai."
+	case 6:
+		return `Pesanan telah selesai. Terima kasih telah menggunakan jasa Kami.
+		Semoga pelayanan kami memuaskan Anda.
+		Jika Anda berkenan, mohon berikan penilaian Anda ketika menggunakan layanan Kami.`
+	case 7:
+		return `Pesanan dibatalkan.`
 	}
 
 	return "";
