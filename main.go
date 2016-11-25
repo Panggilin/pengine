@@ -145,6 +145,7 @@ func main() {
 		v1.GET("/provider/quickinfo", TokenAuthProviderMiddleware(), GetProviderQuickInfo)
 		v1.GET("/provider/order/me", TokenAuthProviderMiddleware(), GetProviderOrder)
 		v1.GET("/provider/order/detail/:order_id", TokenAuthProviderMiddleware(), GetProviderOrderDetail)
+		v1.PUT("/provider/devicetoken/update", TokenAuthProviderMiddleware(), PutProviderDeviceTokenUpdate)
 	}
 
 	r.Run(GetPort())
@@ -1766,14 +1767,14 @@ func sendNotificationToCustomer(orderId int64, status int64) {
 
 func sendNotificationToProvider(orderId int64, status int64) {
 	var userNotification UserNotification
-	err := dbmap.SelectOne(&userNotification, `SELECT ov.provider_id as account_id, up.device_token
+	err := dbmap.SelectOne(&userNotification, `SELECT ov.provider_id as account_id, pa.device_token
 	 	FROM ordervendor ov
-	 	 JOIN provideraccount pa ON pa.id = ov.provider_id WHERE ov.id=$1`, orderId)
+	 	 JOIN provideraccount pa ON pa.provider_id = ov.provider_id WHERE ov.id=$1`, orderId)
 
 	if err == nil {
 
 		// Create the message to be sent.
-		data := map[string]interface{}{ "message" : "Anda mendapatkan pesanan baru." }
+		data := map[string]interface{}{ "message" : "Anda mendapatkan pesanan baru.", "order_id" : orderId }
 		msg := gcm.NewMessage(data, userNotification.DeviceToken)
 
 		sender := &gcm.Sender{ApiKey: "AIzaSyAg33A5YvBegDqgbIgU6hH4jdbb45B7UaM"}
@@ -2125,6 +2126,23 @@ func PutDeviceTokenUpdate(c *gin.Context) {
 	if userId != -1 {
 		if update := db.QueryRow(`UPDATE useraccount SET device_token=$1 WHERE id=$2`,
 			userAccount.DeviceToken, userId);
+		update != nil {
+			c.JSON(200, gin.H{"success" : "Device token updated" })
+		}
+	} else {
+		c.JSON(400, gin.H{"error" : "Account not found"})
+	}
+}
+
+func PutProviderDeviceTokenUpdate(c *gin.Context) {
+	var providerAccount ProviderAccount
+	c.Bind(&providerAccount)
+
+	providerId := getProviderIdFromToken(c)
+
+	if providerId != -1 {
+		if update := db.QueryRow(`UPDATE provideraccount SET device_token=$1 WHERE provider_id=$2`,
+			providerAccount.DeviceToken, providerId);
 		update != nil {
 			c.JSON(200, gin.H{"success" : "Device token updated" })
 		}
