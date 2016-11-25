@@ -991,6 +991,11 @@ func PostSignInProvider(c *gin.Context) {
 
 	if err == nil {
 
+		if providerAccount.DeviceToken != "" {
+			db.QueryRow(`UPDATE provideraccount SET device_token=$1 WHERE provider_id=$2`,
+				providerAccount.DeviceToken, recProviderAccount.ProviderId)
+		}
+
 		var authTokenProvider AuthTokenProvider
 
 		errAuthToken := dbmap.SelectOne(&authTokenProvider,
