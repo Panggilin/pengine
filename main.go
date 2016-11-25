@@ -1902,6 +1902,11 @@ func loginWithRegisteredAccount(userAccount UserAccount, c *gin.Context) {
 
 	if recAuthAccount.Email != "" {
 
+		if userAccount.DeviceToken != "" {
+			db.QueryRow(`UPDATE useraccount set device_token=$1 WHERE email=$2`,
+				userAccount.DeviceToken, userAccount.Email)
+		}
+
 		var authToken AuthToken
 
 		errAuthToken := dbmap.SelectOne(&authToken,
@@ -2071,6 +2076,7 @@ func PostAuthSocial(c *gin.Context) {
 
 		}
 	} else {
+
 		// sign in
 		loginWithRegisteredAccount(userAccount, c)
 	}
