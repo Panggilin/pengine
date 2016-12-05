@@ -781,9 +781,7 @@ func GetProviders(c *gin.Context) {
 func GetProvider(c *gin.Context) {
 
 	// Get provider by id
-	// providerId := c.Params.ByName("id")
-
-	providerId := 23
+	 providerId := c.Params.ByName("id")
 
 	// Get basic info
 	var providerBasicInfo ProviderBasicInfo
@@ -795,6 +793,12 @@ func GetProvider(c *gin.Context) {
 
 	if errBasicInfo != nil {
 		checkErr(errBasicInfo, "Select basic info failed")
+	}
+
+	if providerBasicInfo.JasaId == 1 {
+		providerId = strconv.Itoa(36)
+	} else {
+		providerId = strconv.Itoa(23)
 	}
 
 	// Get profile pict
