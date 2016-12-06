@@ -1628,7 +1628,7 @@ func GetUserOrder(c *gin.Context) {
 				as otp ON otp.order_id = ov.id
 			JOIN (	SELECT order_id, MAX(status) as status FROM ordervendorjourney WHERE order_id IN (SELECT id FROM ordervendor WHERE user_id=$1) GROUP BY order_id)
 				as ouj ON ouj.order_id = ov.id
-		WHERE ov.user_id=$1 AND status < $2`, userId, query.LowerThan)
+		WHERE ov.user_id=$1 AND status < $2 ORDER BY ov.id ASC`, userId, query.LowerThan)
 
 		if err == nil {
 			c.JSON(200, gin.H{"data" : orderList})
@@ -1649,7 +1649,7 @@ func GetUserOrder(c *gin.Context) {
 				as otp ON otp.order_id = ov.id
 			JOIN (	SELECT order_id, MAX(status) as status FROM ordervendorjourney WHERE order_id IN (SELECT id FROM ordervendor WHERE user_id=$1) GROUP BY order_id)
 				as ouj ON ouj.order_id = ov.id
-		WHERE ov.user_id=$1 AND status > $2`, userId, query.GreaterThan)
+		WHERE ov.user_id=$1 AND status > $2 ORDER BY ov.id ASC`, userId, query.GreaterThan)
 
 		if err == nil {
 			c.JSON(200, gin.H{"data" : orderList})
@@ -1670,7 +1670,7 @@ func GetUserOrder(c *gin.Context) {
 				as otp ON otp.order_id = ov.id
 			JOIN (	SELECT order_id, MAX(status) as status FROM ordervendorjourney WHERE order_id IN (SELECT id FROM ordervendor WHERE user_id=$1) GROUP BY order_id)
 				as ouj ON ouj.order_id = ov.id
-		WHERE ov.user_id=$1`, userId)
+		WHERE ov.user_id=$1 ORDER BY ov.id ASC`, userId)
 
 		if err == nil {
 			c.JSON(200, gin.H{"data" : orderList})
