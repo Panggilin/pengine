@@ -113,7 +113,7 @@ func main() {
 
 		v1.GET("/providers", TokenAuthUserMiddleware(), GetProviders)
 		v1.GET("/providers/near", TokenAuthUserMiddleware(), GetNearProviderForMap)
-		v1.GET("/providers/search", TokenAuthUserMiddleware(), GetProvidersByKeyword)
+		v1.POST("/providers/search", TokenAuthUserMiddleware(), GetProvidersByKeyword)
 		v1.GET("/provider/jasa/:jasa_id", TokenAuthUserMiddleware(), GetProvidersByCategory)
 		v1.GET("/provider/data/:id", TokenAuthUserMiddleware(), GetProvider)
 		v1.GET("/provider/prices/:provider_id", TokenAuthUserMiddleware(), GetProviderPriceList)
@@ -977,8 +977,63 @@ ORDER BY distance ASC;
 	}
 }
 
+type PostSearchType struct {
+	Keyword string `json:"keyword"`
+	Latitude float64 `json:"latitude"`
+	Longitude float64 `json:"longitude"`
+}
+
 func GetProvidersByKeyword(c *gin.Context) {
-	// Get all provider by keyword
+	var postSearchType PostSearchType
+	c.Bind(&postSearchType)
+
+	if postSearchType.Keyword != "" {
+
+		// get provider
+		var providerByCat []ProviderByCat
+
+		_, err := dbmap.Select(&providerByCat, `SELECT pd.id, pd.nama, pl.latitude, pl.longitude, min_price,
+		max_price, rating,
+		earth_distance(ll_to_earth($1, $2), ll_to_earth(pl.latitude, pl.longitude)) AS distance
+		FROM providerdata pd join providerlocation pl on pl.provider_id = pd.id
+		LEFT JOIN (
+			SELECT provider_id, MIN(service_price) as min_price, MAX(service_price)
+			as max_price
+			FROM providerpricelist
+			GROUP BY provider_id) pp
+		ON pp.provider_id = pd.id
+		LEFT JOIN (
+			SELECT provider_id, ((sum_rating + 0.0)/count)::float as rating
+			FROM (
+				SELECT provider_id, count(*) as count, sum(user_rating) sum_rating
+				FROM providerrating group by provider_id) rating_counter) pr
+		ON pr.provider_id = pd.id
+		LEFT JOIN kategorijasa kj ON kj.id = pd.jasa_id
+		WHERE LOWER(kj.jenis) LIKE LOWER('%' || $3 || '%') OR LOWER(pd.nama) LIKE LOWER('%' || $3 || '%')
+		ORDER BY distance ASC`, postSearchType.Latitude, postSearchType.Longitude, postSearchType.Keyword)
+
+		if err == nil {
+			/*listProviders := []ListProviderByCat{}
+					for _, row := range providerByCat {
+						listProviderItem := ListProviderByCat{
+							Id:        row.Id,
+							Nama:      row.Nama,
+							Latitude:  row.Latitude,
+							Longitude: row.Longitude,
+							MinPrice:  row.MinPrice.Int64,
+							MaxPrice:  row.MaxPrice.Int64,
+							Rating:    row.Rating.Float64,
+							Distance:  row.Distance,
+						}
+						listProviders = append(listProviders, listProviderItem)
+					}*/
+
+			c.JSON(200, gin.H{"data": providerByCat})
+		} else {
+			checkErr(err, "failed")
+			c.JSON(400, gin.H{"error" : "Penyedia jasa tidak ditemukan"})
+		}
+	}
 }
 
 func getTokenLoginProvider(providerId int64) {
