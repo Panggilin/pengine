@@ -956,7 +956,7 @@ ORDER BY distance ASC;
 	`, lat, long, jasaId, searchDistance)
 
 	if err == nil {
-		/*listProviders := []ListProviderByCat{}
+		listProviders := []ListProviderByCat{}
 		for _, row := range providerByCat {
 			listProviderItem := ListProviderByCat{
 				Id:        row.Id,
@@ -969,9 +969,9 @@ ORDER BY distance ASC;
 				Distance:  row.Distance,
 			}
 			listProviders = append(listProviders, listProviderItem)
-		}*/
+		}
 
-		c.JSON(200, gin.H{"data": providerByCat})
+		c.JSON(200, gin.H{"data": listProviders})
 	} else {
 		checkErr(err, "Select failed")
 	}
@@ -1013,7 +1013,7 @@ func GetProvidersByKeyword(c *gin.Context) {
 		ORDER BY distance ASC`, postSearchType.Latitude, postSearchType.Longitude, postSearchType.Keyword)
 
 		if err == nil {
-			/*listProviders := []ListProviderByCat{}
+			listProviders := []ListProviderByCat{}
 					for _, row := range providerByCat {
 						listProviderItem := ListProviderByCat{
 							Id:        row.Id,
@@ -1026,9 +1026,9 @@ func GetProvidersByKeyword(c *gin.Context) {
 							Distance:  row.Distance,
 						}
 						listProviders = append(listProviders, listProviderItem)
-					}*/
+					}
 
-			c.JSON(200, gin.H{"data": providerByCat})
+			c.JSON(200, gin.H{"data": listProviders})
 		} else {
 			checkErr(err, "failed")
 			c.JSON(400, gin.H{"error" : "Penyedia jasa tidak ditemukan"})
