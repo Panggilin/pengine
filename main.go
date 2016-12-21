@@ -772,6 +772,12 @@ type ProviderDetailJourney struct {
 	ProviderType int64 `db:"provider_type" json:"provider_type"`
 }
 
+type PostSearchType struct {
+	Keyword string `json:"keyword"`
+	Latitude float64 `json:"latitude"`
+	Longitude float64 `json:"longitude"`
+}
+
 // ========================== FUNC
 
 func GetProviders(c *gin.Context) {
@@ -977,11 +983,6 @@ ORDER BY distance ASC;
 	}
 }
 
-type PostSearchType struct {
-	Keyword string `json:"keyword"`
-	Latitude float64 `json:"latitude"`
-	Longitude float64 `json:"longitude"`
-}
 
 func GetProvidersByKeyword(c *gin.Context) {
 	var postSearchType PostSearchType
