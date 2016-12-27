@@ -1816,7 +1816,7 @@ func sendNotificationToCustomer(orderId int64, status int64) {
 		data := map[string]interface{}{ "message" : message, "order_id" : orderId }
 		msg := gcm.NewMessage(data, userNotification.DeviceToken)
 
-		sender := &gcm.Sender{ ApiKey: "AIzaSyDBvQ9PW8UGs2SdHVHCURXr-QNMEunY_rM" }
+		sender := &gcm.Sender{ ApiKey: "AAAA9Vlw-s0:APA91bGOuvvl-28LwHEo4WYoRGDKvGHuFvQ2um6PQJcmV0gUpFV77XWlMuDxDRSF1slYLHiv4JXVShmGJCa8kulZigBWKh7WVirPp8Sr8-vUFnA7PhEgluVuz_vNbNRHSujFpPJk2r8W9MdcFkVnEB8jqLkRArxrdQ" }
 
 		// Send the message and receive the response after at most two retries.
 		_, err := sender.Send(msg, 2)
@@ -1842,7 +1842,7 @@ func sendNotificationToProvider(orderId int64, status int64) {
 		data := map[string]interface{}{ "message" : "Anda mendapatkan pesanan baru.", "order_id" : orderId }
 		msg := gcm.NewMessage(data, userNotification.DeviceToken)
 
-		sender := &gcm.Sender{ApiKey: "AIzaSyAg33A5YvBegDqgbIgU6hH4jdbb45B7UaM"}
+		sender := &gcm.Sender{ApiKey: "AAAAEQ5Rnmw:APA91bHkloGjTc-usBQ3rHHmu_Ja-sz8KcPeaA1HgERuHWZySzt21fPQe5FQHJ6fNGbwwUYA_kzVaSESCmfj0dLsjqv3Sgqw-1FG9VhQa-V3Kih_uJz1O1GpUI43rAXbOWyjrnktZDJPgH50DT6M0sECoPpSO4Q_Sg"}
 
 		// Send the message and receive the response after at most two retries.
 		_, err := sender.Send(msg, 2)
