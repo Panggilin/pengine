@@ -1422,7 +1422,7 @@ func GetJobQueProvider(c *gin.Context) {
 			JOIN userprofile up ON up.user_id = ov.user_id
 			JOIN (SELECT order_id, MAX(status) as status FROM ordervendorjourney GROUP BY order_id) as ouj ON ouj.order_id = ov.id
 			JOIN (SELECT kj.jenis as jenis_jasa, pd.id as provider_id FROM kategorijasa kj JOIN providerdata pd on pd.jasa_id = kj.id) as kjp ON kjp.provider_id = ov.provider_id
-		WHERE ov.provider_id=$1
+		WHERE ov.provider_id=$1 AND ouj.status < 6
 		ORDER BY ov.order_date ASC`, providerId)
 
 	if err == nil {

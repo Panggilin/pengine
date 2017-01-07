@@ -27,8 +27,8 @@
       <file leaf-file-name="main.go" pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/main.go">
           <provider selected="true" editor-type-id="text-editor">
-            <state vertical-scroll-proportion="0.8128342">
-              <caret line="1843" column="49" selection-start-line="1843" selection-start-column="49" selection-end-line="1843" selection-end-column="49" />
+            <state vertical-scroll-proportion="0.7878788">
+              <caret line="1427" column="23" selection-start-line="1427" selection-start-column="23" selection-end-line="1427" selection-end-column="23" />
               <folding>
                 <element signature="e#14#229#0" expanded="true" />
               </folding>
@@ -765,8 +765,8 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/main.go">
       <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="0.8128342">
-          <caret line="1843" column="49" selection-start-line="1843" selection-start-column="49" selection-end-line="1843" selection-end-column="49" />
+        <state vertical-scroll-proportion="0.7878788">
+          <caret line="1427" column="23" selection-start-line="1427" selection-start-column="23" selection-end-line="1427" selection-end-column="23" />
           <folding>
             <element signature="e#14#229#0" expanded="true" />
           </folding>
