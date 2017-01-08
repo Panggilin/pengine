@@ -1932,7 +1932,7 @@ func sendNotificationToCustomer(orderId int64, status int64) {
 			userNotification.DeviceToken,
 		}
 
-		c := fcm.NewFcmClient(heroServerKey)
+		c := fcm.NewFcmClient(panggilinServerKey)
 		c.NewFcmRegIdsMsg(ids, data)
 
 		status, err := c.Send()
@@ -1966,7 +1966,7 @@ func sendNotificationToProvider(orderId int64, status int64) {
 			userNotification.DeviceToken,
 		}
 
-		c := fcm.NewFcmClient(panggilinServerKey)
+		c := fcm.NewFcmClient(heroServerKey)
 		c.NewFcmRegIdsMsg(ids, data)
 
 		status, err := c.Send()
