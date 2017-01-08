@@ -27,7 +27,8 @@ import (
 var mySigningKey = []byte("APIRI4008090121721000STDGTL")
 
 const (
-	serverKey = "AAAAEQ5Rnmw:APA91bHkloGjTc-usBQ3rHHmu_Ja-sz8KcPeaA1HgERuHWZySzt21fPQe5FQHJ6fNGbwwUYA_kzVaSESCmfj0dLsjqv3Sgqw-1FG9VhQa-V3Kih_uJz1O1GpUI43rAXbOWyjrnktZDJPgH50DT6M0sECoPpSO4Q_Sg"
+	panggilinServerKey = "AAAAEQ5Rnmw:APA91bHkloGjTc-usBQ3rHHmu_Ja-sz8KcPeaA1HgERuHWZySzt21fPQe5FQHJ6fNGbwwUYA_kzVaSESCmfj0dLsjqv3Sgqw-1FG9VhQa-V3Kih_uJz1O1GpUI43rAXbOWyjrnktZDJPgH50DT6M0sECoPpSO4Q_Sg"
+	heroServerKey = "AAAA9Vlw-s0:APA91bGOuvvl-28LwHEo4WYoRGDKvGHuFvQ2um6PQJcmV0gUpFV77XWlMuDxDRSF1slYLHiv4JXVShmGJCa8kulZigBWKh7WVirPp8Sr8-vUFnA7PhEgluVuz_vNbNRHSujFpPJk2r8W9MdcFkVnEB8jqLkRArxrdQ"
 )
 
 var db = initDb()
@@ -1931,7 +1932,7 @@ func sendNotificationToCustomer(orderId int64, status int64) {
 			userNotification.DeviceToken,
 		}
 
-		c := fcm.NewFcmClient(serverKey)
+		c := fcm.NewFcmClient(heroServerKey)
 		c.NewFcmRegIdsMsg(ids, data)
 
 		status, err := c.Send()
@@ -1965,7 +1966,7 @@ func sendNotificationToProvider(orderId int64, status int64) {
 			userNotification.DeviceToken,
 		}
 
-		c := fcm.NewFcmClient(serverKey)
+		c := fcm.NewFcmClient(panggilinServerKey)
 		c.NewFcmRegIdsMsg(ids, data)
 
 		status, err := c.Send()
