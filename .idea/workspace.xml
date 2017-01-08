@@ -2,7 +2,6 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="0b9c36f9-0a87-4f07-859b-cea3d0860e25" name="Default" comment="">
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/workspace.xml" afterPath="$PROJECT_DIR$/.idea/workspace.xml" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/main.go" afterPath="$PROJECT_DIR$/main.go" />
     </list>
     <ignored path="pengine.iws" />
@@ -27,8 +26,8 @@
       <file leaf-file-name="main.go" pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/main.go">
           <provider selected="true" editor-type-id="text-editor">
-            <state vertical-scroll-proportion="0.3600713">
-              <caret line="2172" column="60" selection-start-line="2172" selection-start-column="60" selection-end-line="2172" selection-end-column="60" />
+            <state vertical-scroll-proportion="0.7326203">
+              <caret line="2564" column="78" selection-start-line="2564" selection-start-column="78" selection-end-line="2564" selection-end-column="78" />
               <folding>
                 <element signature="e#14#229#0" expanded="true" />
               </folding>
@@ -773,8 +772,8 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/main.go">
       <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="0.3600713">
-          <caret line="2172" column="60" selection-start-line="2172" selection-start-column="60" selection-end-line="2172" selection-end-column="60" />
+        <state vertical-scroll-proportion="0.7326203">
+          <caret line="2564" column="78" selection-start-line="2564" selection-start-column="78" selection-end-line="2564" selection-end-column="78" />
           <folding>
             <element signature="e#14#229#0" expanded="true" />
           </folding>

@@ -2524,8 +2524,8 @@ func GetProviderOrder(c *gin.Context) {
 func GetProviderOrderDetail(c *gin.Context) {
 	orderId := c.Params.ByName("order_id")
 
-	var orderItem OrderItemListProvider
-	err := dbmap.SelectOne(&orderItem, `SELECT ov.id, ov.destination, ov.destination_lat as latitude, ov.destination_long as longitude, order_date,
+	var orderItemWithNilValue OrderItemListProviderWithNilValue
+	err := dbmap.SelectOne(&orderItemWithNilValue, `SELECT ov.id, ov.destination, ov.destination_lat as latitude, ov.destination_long as longitude, order_date,
 		up.user_id as customer_id, up.full_name as customer_name, up.address as customer_domisili,
 		kj.id as jasa_id, kj.jenis as jasa_name,
 		otp.total_price as price,
@@ -2549,7 +2549,21 @@ func GetProviderOrderDetail(c *gin.Context) {
 		FROM ordervendordetail WHERE order_id=$1`, orderId)
 
 	if err == nil && errOrderDetailItem == nil {
-		c.JSON(200, gin.H { "order_info" : orderItem, "orders" : orderDetail })
+		c.JSON(200, gin.H { "order_info" : OrderItemListProvider{
+			Id: orderItemWithNilValue.Id,
+			JasaId: orderItemWithNilValue.JasaId,
+			JasaName: orderItemWithNilValue.JasaName,
+			CustomerId: orderItemWithNilValue.CustomerId,
+			CustomerName: orderItemWithNilValue.CustomerName,
+			CustomerDomisili: orderItemWithNilValue.CustomerDomisili,
+			Destination: orderItemWithNilValue.Destination,
+			Latitude: orderItemWithNilValue.Latitude,
+			Longitude: orderItemWithNilValue.Longitude,
+			Price: orderItemWithNilValue.Price,
+			Status: orderItemWithNilValue.Status,
+			OrderDate: orderItemWithNilValue.OrderDate,
+			CompleteDate: orderItemWithNilValue.CompleteDate.Int64,
+		}, "orders" : orderDetail })
 	} else {
 		checkErr(err, "select info failed")
 		checkErr(errOrderDetailItem, "select detail failed")
