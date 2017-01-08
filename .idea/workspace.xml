@@ -27,8 +27,8 @@
       <file leaf-file-name="main.go" pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/main.go">
           <provider selected="true" editor-type-id="text-editor">
-            <state vertical-scroll-proportion="0.7878788">
-              <caret line="1427" column="23" selection-start-line="1427" selection-start-column="23" selection-end-line="1427" selection-end-column="23" />
+            <state vertical-scroll-proportion="0.3600713">
+              <caret line="2172" column="60" selection-start-line="2172" selection-start-column="60" selection-end-line="2172" selection-end-column="60" />
               <folding>
                 <element signature="e#14#229#0" expanded="true" />
               </folding>
@@ -763,10 +763,18 @@
         </state>
       </provider>
     </entry>
+    <entry file="file://$PROJECT_DIR$/vendor/github.com/dgrijalva/jwt-go/token.go">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="0.33333334">
+          <caret line="22" column="5" selection-start-line="22" selection-start-column="5" selection-end-line="22" selection-end-column="5" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
     <entry file="file://$PROJECT_DIR$/main.go">
       <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="0.7878788">
-          <caret line="1427" column="23" selection-start-line="1427" selection-start-column="23" selection-end-line="1427" selection-end-column="23" />
+        <state vertical-scroll-proportion="0.3600713">
+          <caret line="2172" column="60" selection-start-line="2172" selection-start-column="60" selection-end-line="2172" selection-end-column="60" />
           <folding>
             <element signature="e#14#229#0" expanded="true" />
           </folding>
