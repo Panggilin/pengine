@@ -5,6 +5,6 @@
     <content url="file://$MODULE_DIR$" />
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />
-    <orderEntry type="library" name="GOPATH &lt;pengine&gt;" level="project" />
+    <orderEntry type="library" exported="" name="GOPATH &lt;pengine&gt;" level="project" />
   </component>
 </module>

@@ -16,14 +16,19 @@ import (
 	"time"
 	"strings"
 
-	"github.com/alexjlockwood/gcm"
 	"fmt"
+
+	"github.com/NaySoftware/go-fcm"
 )
 
 // ========================= INITIALIZE
 
 /* Set up a global string for our secret */
 var mySigningKey = []byte("APIRI4008090121721000STDGTL")
+
+const (
+	serverKey = "AAAAEQ5Rnmw:APA91bHkloGjTc-usBQ3rHHmu_Ja-sz8KcPeaA1HgERuHWZySzt21fPQe5FQHJ6fNGbwwUYA_kzVaSESCmfj0dLsjqv3Sgqw-1FG9VhQa-V3Kih_uJz1O1GpUI43rAXbOWyjrnktZDJPgH50DT6M0sECoPpSO4Q_Sg"
+)
 
 var db = initDb()
 var dbmap = initDbmap()
@@ -1917,19 +1922,26 @@ func sendNotificationToCustomer(orderId int64, status int64) {
 		message := getMessageBasedStatusForCustomer(status)
 
 		// Create the message to be sent.
-		data := map[string]interface{}{ "message" : message, "order_id" : orderId }
-		msg := gcm.NewMessage(data, userNotification.DeviceToken)
-
-		// from panggilin hero
-		sender := &gcm.Sender{ ApiKey: "AIzaSyCJVqjYkHKQp_Rj7tvIlMQ_sG9hYhY9W54" }
-
-		// Send the message and receive the response after at most two retries.
-		_, err := sender.Send(msg, 2)
-
-		if err != nil {
-			fmt.Printf("Send failed", err)
-			return
+		data := map[string]string{
+			"message" : message,
+			"order_id" : strconv.FormatInt(orderId, 10),
 		}
+
+		ids := []string{
+			userNotification.DeviceToken,
+		}
+
+		c := fcm.NewFcmClient(serverKey)
+		c.NewFcmRegIdsMsg(ids, data)
+
+		status, err := c.Send()
+
+		if err == nil {
+			status.PrintResults()
+		} else {
+			fmt.Println(err)
+		}
+
 	} else {
 		fmt.Printf("Select failed", err)
 	}
@@ -1944,19 +1956,26 @@ func sendNotificationToProvider(orderId int64, status int64) {
 	if err == nil {
 
 		// Create the message to be sent.
-		data := map[string]interface{}{ "message" : "Anda mendapatkan pesanan baru.", "order_id" : orderId }
-		msg := gcm.NewMessage(data, userNotification.DeviceToken)
-
-		// from panggilin
-		sender := &gcm.Sender{ApiKey: "AIzaSyAROySGSfDVPtVikYFoUE47u-6EO267sf8"}
-
-		// Send the message and receive the response after at most two retries.
-		_, err := sender.Send(msg, 2)
-
-		if err != nil {
-			fmt.Printf("Send failed", err)
-			return
+		data := map[string]string{
+			"message" : "Anda mendapatkan pesanan baru.",
+			"order_id" : strconv.FormatInt(orderId, 10),
 		}
+
+		ids := []string{
+			userNotification.DeviceToken,
+		}
+
+		c := fcm.NewFcmClient(serverKey)
+		c.NewFcmRegIdsMsg(ids, data)
+
+		status, err := c.Send()
+
+		if err == nil {
+			status.PrintResults()
+		} else {
+			fmt.Println(err)
+		}
+
 	} else {
 		fmt.Printf("Select failed", err)
 	}

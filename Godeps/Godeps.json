@@ -7,6 +7,10 @@
 	],
 	"Deps": [
 		{
+			"ImportPath": "github.com/NaySoftware/go-fcm",
+			"Rev": "41b9a476e91975e98b4ac84b52b1dbcf7bbf26da"
+		},
+		{
 			"ImportPath": "github.com/alexjlockwood/gcm",
 			"Rev": "2407bc782264326a3d4c71dd1ebeb8ab75221923"
 		},
