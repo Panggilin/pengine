@@ -12,9 +12,10 @@ import (
 
 	"strconv"
 
-	_ "github.com/lib/pq"
-	"time"
 	"strings"
+	"time"
+
+	_ "github.com/lib/pq"
 
 	"fmt"
 
@@ -28,13 +29,27 @@ var mySigningKey = []byte("APIRI4008090121721000STDGTL")
 
 const (
 	panggilinServerKey = "AAAAEQ5Rnmw:APA91bHkloGjTc-usBQ3rHHmu_Ja-sz8KcPeaA1HgERuHWZySzt21fPQe5FQHJ6fNGbwwUYA_kzVaSESCmfj0dLsjqv3Sgqw-1FG9VhQa-V3Kih_uJz1O1GpUI43rAXbOWyjrnktZDJPgH50DT6M0sECoPpSO4Q_Sg"
-	heroServerKey = "AAAA9Vlw-s0:APA91bGOuvvl-28LwHEo4WYoRGDKvGHuFvQ2um6PQJcmV0gUpFV77XWlMuDxDRSF1slYLHiv4JXVShmGJCa8kulZigBWKh7WVirPp8Sr8-vUFnA7PhEgluVuz_vNbNRHSujFpPJk2r8W9MdcFkVnEB8jqLkRArxrdQ"
+	heroServerKey      = "AAAA9Vlw-s0:APA91bGOuvvl-28LwHEo4WYoRGDKvGHuFvQ2um6PQJcmV0gUpFV77XWlMuDxDRSF1slYLHiv4JXVShmGJCa8kulZigBWKh7WVirPp8Sr8-vUFnA7PhEgluVuz_vNbNRHSujFpPJk2r8W9MdcFkVnEB8jqLkRArxrdQ"
+	DB_USER            = "admin_panggilin"
+	DB_PASSWORD        = "1000SD"
+	DB_NAME            = "panggilin_core_data"
 )
 
 var db = initDb()
 var dbmap = initDbmap()
 
 func initDb() *sql.DB {
+
+	//dbinfo := fmt.Sprintf(
+	//	"user=%s password=%s dbname=%s host=%s port=%s sslmode=disable",
+	//	DB_USER,
+	//	DB_PASSWORD,
+	//	DB_NAME,
+	//	os.Getenv("POSTGRES_1_PORT_5432_TCP_ADDR"),
+	//	os.Getenv("POSTGRES_1_PORT_5432_TCP_PORT"))
+
+	//db, err := sql.Open("postgres", dbinfo)
+
 	db, err := sql.Open("postgres", os.Getenv("DATABASE_URL"))
 
 	checkErr(err, "Failed open db")
@@ -92,6 +107,9 @@ func initDbmap() *gorp.DbMap {
 	dbmap.AddTableWithName(AuthTokenProvider{}, "authtokenprovider").SetKeys(true, "Id")
 	checkErr(dbmap.CreateTablesIfNotExists(), "Create tables failed")
 
+	dbmap.AddTableWithName(OrderCancel{}, "ordercancel").SetKeys(true, "Id")
+	checkErr(dbmap.CreateTablesIfNotExists(), "Create tables failed")
+
 	return dbmap
 }
 
@@ -135,6 +153,7 @@ func main() {
 		v1.PUT("/user/profile/update", TokenAuthUserMiddleware(), PutProfileUpdate)
 		v1.PUT("/user/devicetoken/update", TokenAuthUserMiddleware(), PutDeviceTokenUpdate)
 		v1.GET("/user/me", TokenAuthUserMiddleware(), GetUserProfile)
+		v1.POST("/order/cancel",  TokenAuthUserMiddleware(), PostOrderCancel)
 
 		v1.POST("/provider/mylocation", TokenAuthProviderMiddleware(), PostMyLocationProvider)
 		v1.POST("/provider/price/add", TokenAuthProviderMiddleware(), PostAddProviderPriceList)
@@ -173,7 +192,7 @@ func TokenAuthProviderMiddleware() gin.HandlerFunc {
 		tokenStr := getTokenFromHeader(c)
 
 		if tokenStr == "" {
-			c.JSON(401, gin.H{"error" : "Unauthorize request. Please check your header request, and make sure include Authorization token in your request."})
+			c.JSON(401, gin.H{"error": "Unauthorize request. Please check your header request, and make sure include Authorization token in your request."})
 			c.Abort()
 			return
 		} else {
@@ -182,7 +201,7 @@ func TokenAuthProviderMiddleware() gin.HandlerFunc {
 				WHERE auth_token=$1`, tokenStr)
 
 			if err != nil {
-				c.JSON(401, gin.H{"error" : "Unauthorize request. Invalid auth token."})
+				c.JSON(401, gin.H{"error": "Unauthorize request. Invalid auth token."})
 				c.Abort()
 				return
 			}
@@ -198,7 +217,7 @@ func TokenAuthUserMiddleware() gin.HandlerFunc {
 		tokenStr := getTokenFromHeader(c)
 
 		if tokenStr == "" {
-			c.JSON(400, gin.H{"error" : "Unauthorize request. Please check your header request, and make sure include Authorization token in your request."})
+			c.JSON(400, gin.H{"error": "Unauthorize request. Please check your header request, and make sure include Authorization token in your request."})
 			c.Abort()
 			return
 		} else {
@@ -207,16 +226,16 @@ func TokenAuthUserMiddleware() gin.HandlerFunc {
 				WHERE auth_token=$1`, tokenStr)
 
 			if err != nil {
-				c.JSON(401, gin.H{"error" : "Unauthorize request. Please check your header request, and make sure include Authorization token in your request."})
+				c.JSON(401, gin.H{"error": "Unauthorize request. Please check your header request, and make sure include Authorization token in your request."})
 				c.Abort()
 				return
 			} else {
 
 				if time.Now().Unix() >= authToken.ExpireDate {
-					removeExpiredToken(authToken.Id);
-					c.JSON(401, gin.H{"error" : "Expired API token"})
+					removeExpiredToken(authToken.Id)
+					c.JSON(401, gin.H{"error": "Expired API token"})
 					c.Abort()
-					return;
+					return
 				}
 			}
 		}
@@ -226,7 +245,7 @@ func TokenAuthUserMiddleware() gin.HandlerFunc {
 }
 
 func removeExpiredToken(tokenId int64) {
-	db.QueryRow(`DELETE FROM authtoken WHERE id=$1`, tokenId);
+	db.QueryRow(`DELETE FROM authtoken WHERE id=$1`, tokenId)
 }
 
 func GetPort() string {
@@ -247,14 +266,14 @@ Email
 Token
 DeviceId
 Status
- */
+*/
 type ProviderAccount struct {
 	Id          int64  `db:"id" json:"id"`
 	ProviderId  int64  `db:"provider_id" json:"provider_id"`
 	Email       string `db:"email" json:"email"`
 	Password    string `db:"password" json:"password"`
 	DeviceToken string `db:"device_token" json:"device_token"`
-	Status      int64   `db:"status" json:"status"`
+	Status      int64  `db:"status" json:"status"`
 }
 
 /**
@@ -271,13 +290,13 @@ KodePos
 Dokumen
 JoinDate
 ModifiedDate
- */
+*/
 type ProviderData struct {
 	Id           int64  `db:"id" json:"id"`
 	Nama         string `db:"nama" json:"nama"`
 	Email        string `db:"email" json:"email"`
 	PhoneNumber  string `db:"phone_number" json:"phone_number"`
-	JasaId       int64   `db:"jasa_id" json:"jasa_id"`
+	JasaId       int64  `db:"jasa_id" json:"jasa_id"`
 	Alamat       string `db:"alamat" json:"alamat"`
 	Provinsi     string `db:"provinsi" json:"provinsi"`
 	Kabupaten    string `db:"kabupaten" json:"kabupaten"`
@@ -294,7 +313,7 @@ Id
 ProviderId
 Latitude
 Longitude
- */
+*/
 type ProviderLocation struct {
 	Id         int64   `db:"id" json:"id"`
 	ProviderId int64   `db:"provider_id" json:"provider_id"`
@@ -306,7 +325,7 @@ type ProviderLocation struct {
 ProviderLatLang
 Latitude
 Longitude
- */
+*/
 type ProviderLatLng struct {
 	Latitude  float64 `db:"latitude" json:"latitude"`
 	Longitude float64 `db:"longitude" json:"longitude"`
@@ -316,7 +335,7 @@ type ProviderLatLng struct {
 Kategori Jasa
 Id
 Jenis
- */
+*/
 type KategoriJasa struct {
 	Id    int64  `db:"id" json:"id"`
 	Jenis string `db:"jenis" json:"jenis"`
@@ -327,7 +346,7 @@ UserLocation
 UserId
 Latitude
 Longitude
- */
+*/
 type UserLocation struct {
 	UserId    int64   `db:"user_id" json:"user_id"`
 	Latitude  float64 `db:"latitude" json:"latitude"`
@@ -343,7 +362,7 @@ JenisJasa
 Latitude
 Longitude
 Distance
- */
+*/
 type NearProviderForMap struct {
 	Id        int64   `db:"id" json:"id"`
 	Nama      string  `db:"nama" json:"nama"`
@@ -360,11 +379,11 @@ JasaId
 JenisJasa
 CountJasaProvider
 MinDistance
- */
+*/
 type NearProviderByType struct {
 	JasaId            int64   `db:"jasa_id" json:"jasa_id"`
 	JenisJasa         string  `db:"jenis_jasa" json:"jenis_jasa"`
-	CountJasaProvider int64    `db:"count_jasa_provider" json:"count_jasa_provider"`
+	CountJasaProvider int64   `db:"count_jasa_provider" json:"count_jasa_provider"`
 	MinDistance       float64 `db:"min_distance" json:"min_distance"`
 }
 
@@ -375,13 +394,13 @@ ProviderId
 ServiceName
 ServicePrice
 Negotiable
- */
+*/
 type ProviderPriceList struct {
 	Id           int64  `db:"id" json:"id"`
 	ProviderId   int64  `db:"provider_id" json:"provider_id"`
 	ServiceName  string `db:"service_name" json:"service_name"`
 	ServicePrice int64  `db:"service_price" json:"service_price"`
-	Negotiable   int64   `db:"negotiable" json:"negotiable"`
+	Negotiable   int64  `db:"negotiable" json:"negotiable"`
 }
 
 /**
@@ -390,12 +409,12 @@ Id
 ProviderId
 UserId
 UserRating
- */
+*/
 type ProviderRating struct {
 	Id         int64 `db:"id" json:"id"`
 	ProviderId int64 `db:"provider_id" json:"provider_id"`
 	UserId     int64 `db:"user_id" json:"user_id"`
-	UserRating int64  `db:"user_rating" json:"user_rating"`
+	UserRating int64 `db:"user_rating" json:"user_rating"`
 }
 
 /**
@@ -403,7 +422,7 @@ Provider gallery
 Id
 ProviderId
 Image
- */
+*/
 type ProviderGallery struct {
 	Id         int64  `db:"id" json:"id"`
 	ProviderId int64  `db:"provider_id" json:"provider_id"`
@@ -416,7 +435,7 @@ Id
 ProviderId
 ProfilePict
 ProfileBg
- */
+*/
 type ProviderProfileImage struct {
 	Id          int64  `db:"id" json:"id"`
 	ProviderId  int64  `db:"provider_id" json:"provider_id"`
@@ -431,12 +450,12 @@ Nama
 Alamat
 JasaId
 JenisJasa
- */
+*/
 type ProviderBasicInfo struct {
 	Id        int64  `db:"id" json:"id"`
 	Nama      string `db:"nama" json:"nama"`
 	Alamat    string `db:"alamat" json:"alamat"`
-	JasaId    int64   `db:"jasa_id" json:"jasa_id"`
+	JasaId    int64  `db:"jasa_id" json:"jasa_id"`
 	JenisJasa string `db:"jenis_jasa" json:"jenis_jasa"`
 }
 
@@ -452,11 +471,11 @@ DestinationDesc
 Notes
 PaymentMethod
 OrderDate
- */
+*/
 type OrderVendor struct {
-	Id              int64    `db:"id" json:"id"`
-	ProviderId      int64    `db:"provider_id" json:"provider_id"`
-	UserId          int64    `db:"user_id" json:"user_id"`
+	Id              int64   `db:"id" json:"id"`
+	ProviderId      int64   `db:"provider_id" json:"provider_id"`
+	UserId          int64   `db:"user_id" json:"user_id"`
 	Destination     string  `db:"destination" json:"destination"`
 	DestinationLat  float64 `db:"destination_lat" json:"destination_lat"`
 	DestinationLong float64 `db:"destination_long" json:"destination_long"`
@@ -475,14 +494,14 @@ ServiceName
 ServicePrice
 Qty
 ModifiedDate
- */
+*/
 type OrderVendorDetail struct {
-	Id           int64   `db:"id" json:"id"`
-	OrderId      int64   `db:"order_id" json:"order_id"`
-	JasaId       int64   `db:"jasa_id" json:"jasa_id"`
+	Id           int64  `db:"id" json:"id"`
+	OrderId      int64  `db:"order_id" json:"order_id"`
+	JasaId       int64  `db:"jasa_id" json:"jasa_id"`
 	ServiceName  string `db:"service_name" json:"service_name"`
 	ServicePrice int64  `db:"service_price" json:"service_price"`
-	Qty          int64   `db:"qty" json:"qty"`
+	Qty          int64  `db:"qty" json:"qty"`
 	ModifiedDate int64  `db:"modified_date" json:"modified_date"`
 }
 
@@ -491,12 +510,12 @@ Order vendor journey
 Id
 OrderId
 Status
- */
+*/
 type OrderVendorJourney struct {
 	Id      int64 `db:"id" json:"id"`
 	OrderId int64 `db:"order_id" json:"order_id"`
 	Status  int64 `db:"status"`
-	Date	int64 `db:"date" json:"date"`
+	Date    int64 `db:"date" json:"date"`
 }
 
 /**
@@ -505,10 +524,10 @@ Id
 OrderId
 CurrentLatitude
 CurrentLongitude
- */
+*/
 type OrderVendorTracking struct {
-	Id               int64    `db:"id" json:"id"`
-	OrderId          int64    `db:"order_id" json:"order_id"`
+	Id               int64   `db:"id" json:"id"`
+	OrderId          int64   `db:"order_id" json:"order_id"`
 	CurrentLatitude  float64 `db:"latitude" json:"latitude"`
 	CurrentLongitude float64 `db:"longitude" json:"longitude"`
 }
@@ -526,9 +545,9 @@ PaymentMethod
 Notes
 Data
 OrderDate
- */
+*/
 type PostTransaction struct {
-	ProviderId      int64                  `json:"provider_id"`
+	ProviderId      int64                   `json:"provider_id"`
 	Destination     string                  `json:"destination"`
 	DestinationLat  float64                 `json:"destination_lat"`
 	DestinationLong float64                 `json:"destination_long"`
@@ -545,12 +564,12 @@ ServiceName
 ServicePrice
 Qty
 ModifiedDate
- */
+*/
 type PostTransactionDetail struct {
-	JasaId       int64   `json:"jasa_id"`
+	JasaId       int64  `json:"jasa_id"`
 	ServiceName  string `json:"service_name"`
 	ServicePrice int64  `json:"service_price"`
-	Qty          int64   `json:"qty"`
+	Qty          int64  `json:"qty"`
 	ModifiedDate int64  `json:"modified_date"`
 }
 
@@ -564,7 +583,7 @@ MinPrice
 MaxPrice
 Rating
 Distance
- */
+*/
 type ProviderByCat struct {
 	Id        int64           `db:"id" json:"id"`
 	Nama      string          `db:"nama" json:"nama"`
@@ -586,7 +605,7 @@ MinPrice
 MaxPrice
 Rating
 Distance
- */
+*/
 type ListProviderByCat struct {
 	Id        int64   `db:"id" json:"id"`
 	Nama      string  `db:"nama" json:"nama"`
@@ -606,9 +625,9 @@ Password
 AuthMode
 DeviceToken
 JoinDate
- */
+*/
 type UserAccount struct {
-	Id          int64   `db:"id" json:"id"`
+	Id          int64  `db:"id" json:"id"`
 	Email       string `db:"email" json:"email"`
 	Password    string `db:"password" json:"password"`
 	AuthMode    string `db:"auth_mode" json:"auth_mode"`
@@ -622,10 +641,10 @@ Id
 UserId
 AuthToken
 ExpireDate
- */
+*/
 type AuthToken struct {
-	Id         int64   `db:"id" json:"id"`
-	UserId     int64   `db:"user_id" json:"user_id"`
+	Id         int64  `db:"id" json:"id"`
+	UserId     int64  `db:"user_id" json:"user_id"`
 	AuthToken  string `db:"auth_token" json:"auth_token"`
 	ExpireDate int64  `db:"expired_date" json:"expired_date"`
 }
@@ -636,10 +655,10 @@ Id
 ProviderId
 AuthToken
 ExpireDate
- */
+*/
 type AuthTokenProvider struct {
-	Id         int64   `db:"id" json:"id"`
-	ProviderId int64   `db:"provider_id" json:"provider_id"`
+	Id         int64  `db:"id" json:"id"`
+	ProviderId int64  `db:"provider_id" json:"provider_id"`
 	AuthToken  string `db:"auth_token" json:"auth_token"`
 	ExpireDate int64  `db:"expired_date" json:"expired_date"`
 }
@@ -648,10 +667,10 @@ type AuthTokenProvider struct {
 Auth token response
 AuthToken
 ExpiredDate
- */
+*/
 type AuthTokenRes struct {
 	Token       string `json:"token"`
-	ExpiredDate int64 `json:"expired_date"`
+	ExpiredDate int64  `json:"expired_date"`
 }
 
 /**
@@ -663,25 +682,25 @@ Latitude
 Longitude
 DOB
 PhoneNumber
- */
+*/
 type UserProfile struct {
-	UserId      int64    `db:"user_id" json:"user_id"`
-	FullName    string  `db:"full_name" json:"full_name"`
-	Address     string  `db:"address" json:"address"`
-	City	    string `db:"city" json:"city"`
-	DOB         string  `db:"dob" json:"dob"`
-	PhoneNumber string  `db:"phone_number" json:"phone_number"`
-	Gender string `db:"gender" json:"gender"`
+	UserId      int64  `db:"user_id" json:"user_id"`
+	FullName    string `db:"full_name" json:"full_name"`
+	Address     string `db:"address" json:"address"`
+	City        string `db:"city" json:"city"`
+	DOB         string `db:"dob" json:"dob"`
+	PhoneNumber string `db:"phone_number" json:"phone_number"`
+	Gender      string `db:"gender" json:"gender"`
 }
 
 type UserProfileResponse struct {
-	UserId      int64    `db:"user_id" json:"user_id"`
-	FullName    string  `db:"full_name" json:"full_name"`
-	Address     string  `db:"address" json:"address"`
-	City	    string `db:"city" json:"city"`
-	DOB         string  `db:"dob" json:"dob"`
-	PhoneNumber string  `db:"phone_number" json:"phone_number"`
-	Gender sql.NullString `db:"gender" json:"gender"`
+	UserId      int64          `db:"user_id" json:"user_id"`
+	FullName    string         `db:"full_name" json:"full_name"`
+	Address     string         `db:"address" json:"address"`
+	City        string         `db:"city" json:"city"`
+	DOB         string         `db:"dob" json:"dob"`
+	PhoneNumber string         `db:"phone_number" json:"phone_number"`
+	Gender      sql.NullString `db:"gender" json:"gender"`
 }
 
 /**
@@ -693,13 +712,13 @@ PhoneNumber
 AuthMode
 AuthToken
 DeviceToken
- */
+*/
 type LoginAccount struct {
-	UserId      int64      `json:"id"`
-	FullName    string    `json:"full_name"`
-	Email       string    `json:"email"`
-	PhoneNumber string    `json:"phone_number"`
-	AuthMode    string    `json:"auth_mode"`
+	UserId      int64        `json:"id"`
+	FullName    string       `json:"full_name"`
+	Email       string       `json:"email"`
+	PhoneNumber string       `json:"phone_number"`
+	AuthMode    string       `json:"auth_mode"`
 	AuthToken   AuthTokenRes `json:"auth_token"`
 }
 
@@ -712,77 +731,77 @@ JasaName
 Email
 PhoneNumber
 AuthToken
- */
+*/
 type ProviderLoginAccount struct {
-	ProviderId  int64      `json:"id"`
-	FullName    string    `json:"full_name"`
-	JasaId      int64      `json:"jasa_id"`
-	JasaName    string    `json:"jasa_nama"`
-	Email       string    `json:"email"`
-	PhoneNumber string    `json:"phone_number"`
+	ProviderId  int64        `json:"id"`
+	FullName    string       `json:"full_name"`
+	JasaId      int64        `json:"jasa_id"`
+	JasaName    string       `json:"jasa_nama"`
+	Email       string       `json:"email"`
+	PhoneNumber string       `json:"phone_number"`
 	AuthToken   AuthTokenRes `json:"auth_token"`
 }
 
 type OrderItemList struct {
-	Id int64 `db:"id" json:"id"`
-	JasaId int64 `db:"jasa_id" json:"jasa_id"`
-	JasaName string `db:"jasa_name" json:"jasa_name"`
-	VendorId int64 `db:"vendor_id" json:"vendor_id"`
-	VendorName string `db:"vendor_name" json:"vendor_name"`
-	Destination string `db:"destination" json:"destination"`
-	Latitude float64 `db:"latitude" json:"latitude"`
-	Longitude float64 `db:"longitude" json:"longitude"`
-	Price int64 `db:"price" json:"price"`
-	Status int `db:"status" json:"status"`
-	OrderDate int64 `db:"order_date" json:"order_date"`
-	CompleteDate int64 `db:"complete_date" json:"complete_date"`
+	Id           int64   `db:"id" json:"id"`
+	JasaId       int64   `db:"jasa_id" json:"jasa_id"`
+	JasaName     string  `db:"jasa_name" json:"jasa_name"`
+	VendorId     int64   `db:"vendor_id" json:"vendor_id"`
+	VendorName   string  `db:"vendor_name" json:"vendor_name"`
+	Destination  string  `db:"destination" json:"destination"`
+	Latitude     float64 `db:"latitude" json:"latitude"`
+	Longitude    float64 `db:"longitude" json:"longitude"`
+	Price        int64   `db:"price" json:"price"`
+	Status       int     `db:"status" json:"status"`
+	OrderDate    int64   `db:"order_date" json:"order_date"`
+	CompleteDate int64   `db:"complete_date" json:"complete_date"`
 }
 
 type OrderItemListWithNilValue struct {
-	Id int64 `db:"id" json:"id"`
-	JasaId int64 `db:"jasa_id" json:"jasa_id"`
-	JasaName string `db:"jasa_name" json:"jasa_name"`
-	VendorId int64 `db:"vendor_id" json:"vendor_id"`
-	VendorName string `db:"vendor_name" json:"vendor_name"`
-	Destination string `db:"destination" json:"destination"`
-	Latitude float64 `db:"latitude" json:"latitude"`
-	Longitude float64 `db:"longitude" json:"longitude"`
-	Price int64 `db:"price" json:"price"`
-	Status int `db:"status" json:"status"`
-	OrderDate int64 `db:"order_date" json:"order_date"`
+	Id           int64         `db:"id" json:"id"`
+	JasaId       int64         `db:"jasa_id" json:"jasa_id"`
+	JasaName     string        `db:"jasa_name" json:"jasa_name"`
+	VendorId     int64         `db:"vendor_id" json:"vendor_id"`
+	VendorName   string        `db:"vendor_name" json:"vendor_name"`
+	Destination  string        `db:"destination" json:"destination"`
+	Latitude     float64       `db:"latitude" json:"latitude"`
+	Longitude    float64       `db:"longitude" json:"longitude"`
+	Price        int64         `db:"price" json:"price"`
+	Status       int           `db:"status" json:"status"`
+	OrderDate    int64         `db:"order_date" json:"order_date"`
 	CompleteDate sql.NullInt64 `db:"complete_date" json:"complete_date"`
 }
 
 type OrderItemListProvider struct {
-	Id int64 `db:"id" json:"id"`
-	JasaId int64 `db:"jasa_id" json:"jasa_id"`
-	JasaName string `db:"jasa_name" json:"jasa_name"`
-	CustomerId int64 `db:"customer_id" json:"customer_id"`
-	CustomerName string `db:"customer_name" json:"customer_name"`
-	CustomerDomisili string `db:"customer_domisili" json:"customer_domisili"`
-	Destination string `db:"destination" json:"destination"`
-	Latitude float64 `db:"latitude" json:"latitude"`
-	Longitude float64 `db:"longitude" json:"longitude"`
-	Price int64 `db:"price" json:"price"`
-	Status int `db:"status" json:"status"`
-	OrderDate int64 `db:"order_date" json:"order_date"`
-	CompleteDate int64 `db:"complete_date" json:"complete_date"`
+	Id               int64   `db:"id" json:"id"`
+	JasaId           int64   `db:"jasa_id" json:"jasa_id"`
+	JasaName         string  `db:"jasa_name" json:"jasa_name"`
+	CustomerId       int64   `db:"customer_id" json:"customer_id"`
+	CustomerName     string  `db:"customer_name" json:"customer_name"`
+	CustomerDomisili string  `db:"customer_domisili" json:"customer_domisili"`
+	Destination      string  `db:"destination" json:"destination"`
+	Latitude         float64 `db:"latitude" json:"latitude"`
+	Longitude        float64 `db:"longitude" json:"longitude"`
+	Price            int64   `db:"price" json:"price"`
+	Status           int     `db:"status" json:"status"`
+	OrderDate        int64   `db:"order_date" json:"order_date"`
+	CompleteDate     int64   `db:"complete_date" json:"complete_date"`
 }
 
 type OrderItemListProviderWithNilValue struct {
-	Id int64 `db:"id" json:"id"`
-	JasaId int64 `db:"jasa_id" json:"jasa_id"`
-	JasaName string `db:"jasa_name" json:"jasa_name"`
-	CustomerId int64 `db:"customer_id" json:"customer_id"`
-	CustomerName string `db:"customer_name" json:"customer_name"`
-	CustomerDomisili string `db:"customer_domisili" json:"customer_domisili"`
-	Destination string `db:"destination" json:"destination"`
-	Latitude float64 `db:"latitude" json:"latitude"`
-	Longitude float64 `db:"longitude" json:"longitude"`
-	Price int64 `db:"price" json:"price"`
-	Status int `db:"status" json:"status"`
-	OrderDate int64 `db:"order_date" json:"order_date"`
-	CompleteDate sql.NullInt64 `db:"complete_date" json:"complete_date"`
+	Id               int64         `db:"id" json:"id"`
+	JasaId           int64         `db:"jasa_id" json:"jasa_id"`
+	JasaName         string        `db:"jasa_name" json:"jasa_name"`
+	CustomerId       int64         `db:"customer_id" json:"customer_id"`
+	CustomerName     string        `db:"customer_name" json:"customer_name"`
+	CustomerDomisili string        `db:"customer_domisili" json:"customer_domisili"`
+	Destination      string        `db:"destination" json:"destination"`
+	Latitude         float64       `db:"latitude" json:"latitude"`
+	Longitude        float64       `db:"longitude" json:"longitude"`
+	Price            int64         `db:"price" json:"price"`
+	Status           int           `db:"status" json:"status"`
+	OrderDate        int64         `db:"order_date" json:"order_date"`
+	CompleteDate     sql.NullInt64 `db:"complete_date" json:"complete_date"`
 }
 
 type Query struct {
@@ -791,32 +810,40 @@ type Query struct {
 }
 
 type OrderJourneyItem struct {
-	Id int64 `db:"id" json:"id"`
-	Status int `db:"status" json:"status"`
-	Date int64 `db:"date" json:"date"`
+	Id        int64  `db:"id" json:"id"`
+	Status    int    `db:"status" json:"status"`
+	Date      int64  `db:"date" json:"date"`
 	JenisJasa string `db:"jenis_jasa" json:"jenis_jasa"`
 }
 
 type OrderDetailItem struct {
-	JasaId int64 `db:"jasa_id" json:"jasa_id"`
-	ServiceName string `db:"service_name" json:"service_name"`
-	ServicePrice int64 `db:"service_price" json:"service_price"`
-	Qty string `db:"qty" json:"qty"`
-	ModifiedDate int64 `db:"modified_date" json:"modified_date"`
+	JasaId       int64  `db:"jasa_id" json:"jasa_id"`
+	ServiceName  string `db:"service_name" json:"service_name"`
+	ServicePrice int64  `db:"service_price" json:"service_price"`
+	Qty          string `db:"qty" json:"qty"`
+	ModifiedDate int64  `db:"modified_date" json:"modified_date"`
 }
 
 type ProviderDetailJourney struct {
-	ProviderId int64 `db:"provider_id" json:"provider_id"`
-	ProviderName string `db:"provider_name" json:"provider_name"`
-	ProviderAddress string `db:"provider_address" json:"provider_address"`
+	ProviderId      int64          `db:"provider_id" json:"provider_id"`
+	ProviderName    string         `db:"provider_name" json:"provider_name"`
+	ProviderAddress string         `db:"provider_address" json:"provider_address"`
 	ProviderBgImage sql.NullString `db:"provider_bg_images" json:"provider_bg_images"`
-	ProviderType int64 `db:"provider_type" json:"provider_type"`
+	ProviderType    int64          `db:"provider_type" json:"provider_type"`
 }
 
 type PostSearchType struct {
-	Keyword string `json:"keyword"`
-	Latitude float64 `json:"latitude"`
+	Keyword   string  `json:"keyword"`
+	Latitude  float64 `json:"latitude"`
 	Longitude float64 `json:"longitude"`
+}
+
+type OrderCancel struct {
+	Id int64 `db:"id" json:"id"`
+	JourneyId int64 `db:"journey_id" json:"journey_id"`
+	OrderId int64 `db:"order_id" json:"order_id"`
+	CanceledBy int8 `db:"canceled_by" json:"canceled_by"`
+	Message string `db:"message" json:"message"`
 }
 
 // ========================== FUNC
@@ -828,7 +855,7 @@ func GetProviders(c *gin.Context) {
 func GetProvider(c *gin.Context) {
 
 	// Get provider by id
-	 providerId := c.Params.ByName("id")
+	providerId := c.Params.ByName("id")
 
 	// Get basic info
 	var providerBasicInfo ProviderBasicInfo
@@ -1024,7 +1051,6 @@ ORDER BY distance ASC;
 	}
 }
 
-
 func GetProvidersByKeyword(c *gin.Context) {
 	var postSearchType PostSearchType
 	c.Bind(&postSearchType)
@@ -1056,24 +1082,24 @@ func GetProvidersByKeyword(c *gin.Context) {
 
 		if err == nil {
 			listProviders := []ListProviderByCat{}
-					for _, row := range providerByCat {
-						listProviderItem := ListProviderByCat{
-							Id:        row.Id,
-							Nama:      row.Nama,
-							Latitude:  row.Latitude,
-							Longitude: row.Longitude,
-							MinPrice:  row.MinPrice.Int64,
-							MaxPrice:  row.MaxPrice.Int64,
-							Rating:    row.Rating.Float64,
-							Distance:  row.Distance,
-						}
-						listProviders = append(listProviders, listProviderItem)
-					}
+			for _, row := range providerByCat {
+				listProviderItem := ListProviderByCat{
+					Id:        row.Id,
+					Nama:      row.Nama,
+					Latitude:  row.Latitude,
+					Longitude: row.Longitude,
+					MinPrice:  row.MinPrice.Int64,
+					MaxPrice:  row.MaxPrice.Int64,
+					Rating:    row.Rating.Float64,
+					Distance:  row.Distance,
+				}
+				listProviders = append(listProviders, listProviderItem)
+			}
 
 			c.JSON(200, gin.H{"data": listProviders})
 		} else {
 			checkErr(err, "failed")
-			c.JSON(400, gin.H{"error" : "Penyedia jasa tidak ditemukan"})
+			c.JSON(400, gin.H{"error": "Penyedia jasa tidak ditemukan"})
 		}
 	}
 }
@@ -1113,14 +1139,14 @@ func PostSignInProvider(c *gin.Context) {
 		kategoryJasa := getProviderJasa(recProviderAccount.ProviderId)
 
 		loginAccount := ProviderLoginAccount{
-			ProviderId: recProviderAccount.ProviderId,
-			FullName: providerData.Nama,
-			JasaId: kategoryJasa.Id,
-			JasaName: kategoryJasa.Jenis,
+			ProviderId:  recProviderAccount.ProviderId,
+			FullName:    providerData.Nama,
+			JasaId:      kategoryJasa.Id,
+			JasaName:    kategoryJasa.Jenis,
 			PhoneNumber: providerData.PhoneNumber,
-			Email: providerAccount.Email,
+			Email:       providerAccount.Email,
 			AuthToken: AuthTokenRes{
-				Token: authTokenProvider.AuthToken,
+				Token:       authTokenProvider.AuthToken,
 				ExpiredDate: authTokenProvider.ExpireDate,
 			},
 		}
@@ -1128,7 +1154,7 @@ func PostSignInProvider(c *gin.Context) {
 		c.JSON(200, loginAccount)
 
 	} else {
-		c.JSON(400, gin.H{"error" : "Account not exists"})
+		c.JSON(400, gin.H{"error": "Account not exists"})
 	}
 }
 
@@ -1312,7 +1338,7 @@ func GetProviderPrice(c *gin.Context) {
 		FROM providerpricelist WHERE provider_id=$1`, providerId)
 
 	if err == nil {
-		c.JSON(200, gin.H{"data":providerPrice})
+		c.JSON(200, gin.H{"data": providerPrice})
 	} else {
 		checkErr(err, "Select failed")
 	}
@@ -1323,7 +1349,6 @@ func UpdateProviderPrice(c *gin.Context) {
 
 	var providerPrice ProviderPriceList
 	c.Bind(&providerPrice)
-
 
 	if update := db.QueryRow(`UPDATE providerpricelist
 			SET service_name=$1, service_price=$2, negotiable=$3
@@ -1428,23 +1453,23 @@ func GetProviderQuickInfo(c *gin.Context) {
 
 	if errPrice == nil && errOrderList == nil && errRating == nil {
 		c.JSON(200, gin.H{
-			"count_jasa" : len(providerPrice),
-			"count_order" : len(orders),
-			"count_review" : len(providerRating),
+			"count_jasa":   len(providerPrice),
+			"count_order":  len(orders),
+			"count_review": len(providerRating),
 		})
 	} else {
-		checkErr(errPrice, "Select price failed");
-		checkErr(errOrderList, "Select order list failed");
-		checkErr(errRating, "Select rating failed");
+		checkErr(errPrice, "Select price failed")
+		checkErr(errOrderList, "Select order list failed")
+		checkErr(errRating, "Select rating failed")
 	}
 }
 
 type JobQueProvider struct {
-	OrderId int64 `db:"order_id" json:"order_id"`
+	OrderId      int64  `db:"order_id" json:"order_id"`
 	CustomerName string `db:"customer_name" json:"customer_name"`
-	Status int `db:"status" json:"status"`
-	JenisJasa string `db:"jenis_jasa" json:"jenis_jasa"`
-	OrderDate int64 `db:"order_date" json:"order_date"`
+	Status       int    `db:"status" json:"status"`
+	JenisJasa    string `db:"jenis_jasa" json:"jenis_jasa"`
+	OrderDate    int64  `db:"order_date" json:"order_date"`
 }
 
 func GetJobQueProvider(c *gin.Context) {
@@ -1465,9 +1490,9 @@ func GetJobQueProvider(c *gin.Context) {
 		ORDER BY ouj.status DESC`, providerId)
 
 	if err == nil {
-		c.JSON(200, gin.H{"data" : jobQueProvider})
+		c.JSON(200, gin.H{"data": jobQueProvider})
 	} else {
-		c.JSON(400, gin.H{"error" : "Failed get job que"})
+		c.JSON(400, gin.H{"error": "Failed get job que"})
 	}
 
 }
@@ -1527,9 +1552,8 @@ func DeleteService(c *gin.Context) {
 	serviceId := c.Params.ByName("service_id")
 
 	if delete := db.QueryRow(`DELETE FROM providerpricelist
-	WHERE id=$1 AND provider_id=$2`, serviceId, providerId);
-		delete != nil {
-			c.JSON(200, gin.H{"status": "Delete success"})
+	WHERE id=$1 AND provider_id=$2`, serviceId, providerId); delete != nil {
+		c.JSON(200, gin.H{"status": "Delete success"})
 	}
 }
 
@@ -1650,7 +1674,7 @@ func PostNewOrder(c *gin.Context) {
 				orderVendorJourney := OrderVendorJourney{
 					OrderId: orderId,
 					Status:  0,
-					Date: time.Now().Unix(),
+					Date:    time.Now().Unix(),
 				}
 
 				db.QueryRow(`INSERT INTO ordervendorjourney(order_id, status, date)
@@ -1734,24 +1758,24 @@ func GetUserOrder(c *gin.Context) {
 
 			for _, row := range orderListWithNilValue {
 				orderItem := OrderItemList{
-					Id: row.Id,
-					JasaId: row.JasaId,
-					JasaName: row.JasaName,
-					VendorId: row.VendorId,
-					VendorName: row.VendorName,
-					Destination: row.Destination,
-					Latitude: row.Latitude,
-					Longitude: row.Longitude,
-					Price: row.Price,
-					Status: row.Status,
-					OrderDate: row.OrderDate,
+					Id:           row.Id,
+					JasaId:       row.JasaId,
+					JasaName:     row.JasaName,
+					VendorId:     row.VendorId,
+					VendorName:   row.VendorName,
+					Destination:  row.Destination,
+					Latitude:     row.Latitude,
+					Longitude:    row.Longitude,
+					Price:        row.Price,
+					Status:       row.Status,
+					OrderDate:    row.OrderDate,
 					CompleteDate: row.CompleteDate.Int64,
 				}
 
 				orderLists = append(orderLists, orderItem)
 			}
 
-			c.JSON(200, gin.H{"data" : orderLists})
+			c.JSON(200, gin.H{"data": orderLists})
 		} else {
 			checkErr(err, "Select failed")
 		}
@@ -1778,24 +1802,24 @@ func GetUserOrder(c *gin.Context) {
 
 			for _, row := range orderListWithNilValue {
 				orderItem := OrderItemList{
-					Id: row.Id,
-					JasaId: row.JasaId,
-					JasaName: row.JasaName,
-					VendorId: row.VendorId,
-					VendorName: row.VendorName,
-					Destination: row.Destination,
-					Latitude: row.Latitude,
-					Longitude: row.Longitude,
-					Price: row.Price,
-					Status: row.Status,
-					OrderDate: row.OrderDate,
+					Id:           row.Id,
+					JasaId:       row.JasaId,
+					JasaName:     row.JasaName,
+					VendorId:     row.VendorId,
+					VendorName:   row.VendorName,
+					Destination:  row.Destination,
+					Latitude:     row.Latitude,
+					Longitude:    row.Longitude,
+					Price:        row.Price,
+					Status:       row.Status,
+					OrderDate:    row.OrderDate,
 					CompleteDate: row.CompleteDate.Int64,
 				}
 
 				orderLists = append(orderLists, orderItem)
 			}
 
-			c.JSON(200, gin.H{"data" : orderLists})
+			c.JSON(200, gin.H{"data": orderLists})
 		} else {
 			checkErr(err, "Select failed")
 		}
@@ -1822,24 +1846,24 @@ func GetUserOrder(c *gin.Context) {
 
 			for _, row := range orderListWithNilValue {
 				orderItem := OrderItemList{
-					Id: row.Id,
-					JasaId: row.JasaId,
-					JasaName: row.JasaName,
-					VendorId: row.VendorId,
-					VendorName: row.VendorName,
-					Destination: row.Destination,
-					Latitude: row.Latitude,
-					Longitude: row.Longitude,
-					Price: row.Price,
-					Status: row.Status,
-					OrderDate: row.OrderDate,
+					Id:           row.Id,
+					JasaId:       row.JasaId,
+					JasaName:     row.JasaName,
+					VendorId:     row.VendorId,
+					VendorName:   row.VendorName,
+					Destination:  row.Destination,
+					Latitude:     row.Latitude,
+					Longitude:    row.Longitude,
+					Price:        row.Price,
+					Status:       row.Status,
+					OrderDate:    row.OrderDate,
 					CompleteDate: row.CompleteDate.Int64,
 				}
 
 				orderLists = append(orderLists, orderItem)
 			}
 
-			c.JSON(200, gin.H{"data" : orderLists})
+			c.JSON(200, gin.H{"data": orderLists})
 		} else {
 			checkErr(err, "Select failed")
 		}
@@ -1875,17 +1899,17 @@ func GetOrderDetail(c *gin.Context) {
 		`SELECT jasa_id, service_name, service_price, qty, modified_date
 		FROM ordervendordetail WHERE order_id=$1`, orderId)
 
-	if errOrderJourney == nil && errOrderDetailItem == nil && errProviderData == nil{
-		c.JSON(200, gin.H{"journey" : orderJourney,
-			"items" : orderDetail,
-			"provider_id" : providerData.ProviderId,
-			"provider_name" : providerData.ProviderName,
-			"provider_address" : providerData.ProviderAddress,
-			"provider_bg_images" : providerData.ProviderBgImage.String,
-			"provider_type" : providerData.ProviderType,
+	if errOrderJourney == nil && errOrderDetailItem == nil && errProviderData == nil {
+		c.JSON(200, gin.H{"journey": orderJourney,
+			"items":              orderDetail,
+			"provider_id":        providerData.ProviderId,
+			"provider_name":      providerData.ProviderName,
+			"provider_address":   providerData.ProviderAddress,
+			"provider_bg_images": providerData.ProviderBgImage.String,
+			"provider_type":      providerData.ProviderType,
 		})
 	} else {
-		c.JSON(400, gin.H{"error" : "Failed get order detail"})
+		c.JSON(400, gin.H{"error": "Failed get order detail"})
 	}
 }
 
@@ -1907,7 +1931,7 @@ func PostNewOrderJourney(c *gin.Context) {
 }
 
 type UserNotification struct {
-	AccountId int64 `db:"account_id" json:"account_id"`
+	AccountId   int64  `db:"account_id" json:"account_id"`
 	DeviceToken string `db:"device_token" json:"device_token"`
 }
 
@@ -1924,8 +1948,8 @@ func sendNotificationToCustomer(orderId int64, status int64) {
 
 		// Create the message to be sent.
 		data := map[string]string{
-			"message" : message,
-			"order_id" : strconv.FormatInt(orderId, 10),
+			"message":  message,
+			"order_id": strconv.FormatInt(orderId, 10),
 		}
 
 		ids := []string{
@@ -1935,16 +1959,16 @@ func sendNotificationToCustomer(orderId int64, status int64) {
 		c := fcm.NewFcmClient(panggilinServerKey)
 		c.NewFcmRegIdsMsg(ids, data)
 
-		status, err := c.Send()
+		status, errNotif := c.Send()
 
-		if err == nil {
+		if errNotif == nil {
 			status.PrintResults()
 		} else {
-			fmt.Println(err)
+			fmt.Println(errNotif)
 		}
 
 	} else {
-		fmt.Printf("Select failed", err)
+		checkErr(err, "Select failed")
 	}
 }
 
@@ -1958,8 +1982,8 @@ func sendNotificationToProvider(orderId int64, status int64) {
 
 		// Create the message to be sent.
 		data := map[string]string{
-			"message" : "Anda mendapatkan pesanan baru.",
-			"order_id" : strconv.FormatInt(orderId, 10),
+			"message":  "Anda mendapatkan pesanan baru.",
+			"order_id": strconv.FormatInt(orderId, 10),
 		}
 
 		ids := []string{
@@ -1969,16 +1993,16 @@ func sendNotificationToProvider(orderId int64, status int64) {
 		c := fcm.NewFcmClient(heroServerKey)
 		c.NewFcmRegIdsMsg(ids, data)
 
-		status, err := c.Send()
+		status, errNotif := c.Send()
 
-		if err == nil {
+		if errNotif == nil {
 			status.PrintResults()
 		} else {
-			fmt.Println(err)
+			fmt.Println(errNotif)
 		}
 
 	} else {
-		fmt.Printf("Select failed", err)
+		checkErr(err, "Select failed")
 	}
 }
 
@@ -1993,7 +2017,7 @@ func getMessageBasedStatusForCustomer(status int64) string {
 	case 3:
 		return "Penyedia jasa telah tiba dilokasi Anda."
 	case 4:
-		return  "Pekerjaan dimulai."
+		return "Pekerjaan dimulai."
 	case 5:
 		return "Pekerjaan selesai."
 	case 6:
@@ -2002,9 +2026,8 @@ func getMessageBasedStatusForCustomer(status int64) string {
 		return `Pesanan dibatalkan.`
 	}
 
-	return "";
+	return ""
 }
-
 
 func UpdateOrderTracking(c *gin.Context) {
 	var orderVendorTracking OrderVendorTracking
@@ -2039,7 +2062,7 @@ func authenticateEmailAccount(userAccount UserAccount) UserAccount {
 		userAccount.Password)
 
 	if errAuthAccount == nil {
-		return recAuthAccount;
+		return recAuthAccount
 	} else {
 		return UserAccount{}
 	}
@@ -2052,7 +2075,7 @@ func authenticateSocialAccount(userAccount UserAccount) UserAccount {
 		WHERE email=$1`, userAccount.Email)
 
 	if errAuthAccount == nil {
-		return recAuthAccount;
+		return recAuthAccount
 	} else {
 		return UserAccount{}
 	}
@@ -2064,10 +2087,10 @@ func isAccountExists(userAccount UserAccount) bool {
 		`SELECT id FROM useraccount WHERE email=$1`, userAccount.Email)
 
 	if errAuthAccount == nil {
-		return true;
+		return true
 	}
 
-	return false;
+	return false
 }
 
 func PostSignInEmail(c *gin.Context) {
@@ -2112,13 +2135,13 @@ func loginWithRegisteredAccount(userAccount UserAccount, c *gin.Context) {
 		userProfile := getUserProfile(recAuthAccount.Id)
 
 		loginAccount := LoginAccount{
-			UserId: recAuthAccount.Id,
-			FullName: userProfile.FullName,
+			UserId:      recAuthAccount.Id,
+			FullName:    userProfile.FullName,
 			PhoneNumber: userProfile.PhoneNumber,
-			Email: recAuthAccount.Email,
-			AuthMode: recAuthAccount.AuthMode,
+			Email:       recAuthAccount.Email,
+			AuthMode:    recAuthAccount.AuthMode,
 			AuthToken: AuthTokenRes{
-				Token: authToken.AuthToken,
+				Token:       authToken.AuthToken,
 				ExpiredDate: authToken.ExpireDate,
 			},
 		}
@@ -2126,7 +2149,7 @@ func loginWithRegisteredAccount(userAccount UserAccount, c *gin.Context) {
 		c.JSON(200, loginAccount)
 
 	} else {
-		c.JSON(400, gin.H{"error" : "Account not found"})
+		c.JSON(400, gin.H{"error": "Account not found"})
 	}
 }
 
@@ -2152,16 +2175,16 @@ func getProviderJasa(providerId int64) KategoriJasa {
 	dbmap.SelectOne(&kategoriJasa, `SELECT kj.id, kj.jenis FROM kategorijasa kj
 	JOIN providerdata pd ON kj.id = pd.jasa_id WHERE pd.id=$1`, providerId)
 
-	return kategoriJasa;
+	return kategoriJasa
 }
 
 func createAuthTokenProvider(recProviderAccount ProviderAccount) AuthTokenProvider {
 	expiredTime := time.Now().Add(time.Hour * 24).Unix()
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
-		"id": recProviderAccount.Id,
+		"id":    recProviderAccount.Id,
 		"email": recProviderAccount.Email,
-		"exp": expiredTime,
+		"exp":   expiredTime,
 	})
 
 	// Sign and get the complete encoded token as a string using the secret
@@ -2170,15 +2193,14 @@ func createAuthTokenProvider(recProviderAccount ProviderAccount) AuthTokenProvid
 	if errCreateToken == nil {
 		if insert := db.QueryRow(
 			`INSERT INTO authtokenprovider(provider_id, auth_token, expired_date)
-			VALUES($1, $2, $3) RETURNING ID`, recProviderAccount.ProviderId, tokenString, expiredTime);
-		insert != nil {
+			VALUES($1, $2, $3) RETURNING ID`, recProviderAccount.ProviderId, tokenString, expiredTime); insert != nil {
 
 			var id int64
 
 			insert.Scan(&id)
 
 			return AuthTokenProvider{
-				AuthToken: tokenString,
+				AuthToken:  tokenString,
 				ExpireDate: expiredTime,
 			}
 		} else {
@@ -2193,9 +2215,9 @@ func createAuthToken(recAuthAccount UserAccount) AuthToken {
 	expiredTime := time.Now().Add(time.Hour * 48).Unix()
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
-		"id": recAuthAccount.Id,
+		"id":    recAuthAccount.Id,
 		"email": recAuthAccount.Email,
-		"exp": expiredTime,
+		"exp":   expiredTime,
 	})
 
 	// Sign and get the complete encoded token as a string using the secret
@@ -2204,15 +2226,14 @@ func createAuthToken(recAuthAccount UserAccount) AuthToken {
 	if errCreateToken == nil {
 		if insert := db.QueryRow(
 			`INSERT INTO authtoken(user_id, auth_token, expired_date)
-			VALUES($1, $2, $3) RETURNING ID`, recAuthAccount.Id, tokenString, expiredTime);
-		insert != nil {
+			VALUES($1, $2, $3) RETURNING ID`, recAuthAccount.Id, tokenString, expiredTime); insert != nil {
 
 			var id int64
 
 			insert.Scan(&id)
 
 			return AuthToken{
-				AuthToken: tokenString,
+				AuthToken:  tokenString,
 				ExpireDate: expiredTime,
 			}
 		} else {
@@ -2233,14 +2254,13 @@ func PostSignUpEmail(c *gin.Context) {
 		if insert := db.QueryRow(`INSERT INTO useraccount(email, password, auth_mode,
 		device_token, join_date) VALUES($1, $2, $3, $4, $5) RETURNING id`,
 			userAccount.Email, userAccount.Password, userAccount.AuthMode,
-			userAccount.DeviceToken, joinDate);
-		insert != nil {
+			userAccount.DeviceToken, joinDate); insert != nil {
 
 			loginWithRegisteredAccount(userAccount, c)
 
 		}
 	} else {
-		c.JSON(400, gin.H{"error" : "Account already exists"})
+		c.JSON(400, gin.H{"error": "Account already exists"})
 	}
 }
 
@@ -2255,8 +2275,7 @@ func PostAuthSocial(c *gin.Context) {
 		if insert := db.QueryRow(`INSERT INTO useraccount(email, password, auth_mode,
 		device_token, join_date) VALUES($1, $2, $3, $4, $5) RETURNING id`,
 			userAccount.Email, userAccount.Password, userAccount.AuthMode,
-			userAccount.DeviceToken, joinDate);
-		insert != nil {
+			userAccount.DeviceToken, joinDate); insert != nil {
 
 			loginWithRegisteredAccount(userAccount, c)
 
@@ -2282,18 +2301,17 @@ func PutProfileUpdate(c *gin.Context) {
 			if update := db.QueryRow(`UPDATE userprofile SET full_name=$1, address=$2,
 			dob=$3, phone_number=$4, gender=$5, city=$6 WHERE user_id=$7`,
 				userProfile.FullName, userProfile.Address,
-				userProfile.DOB, userProfile.PhoneNumber, userProfile.Gender, userProfile.City, userId);
-			update != nil {
+				userProfile.DOB, userProfile.PhoneNumber, userProfile.Gender, userProfile.City, userId); update != nil {
 
-				c.JSON(200, gin.H{"status" : "Success update data",
-					"data" : UserProfile{
-						UserId: userId,
-						FullName: userProfile.FullName,
-						Address: userProfile.Address,
-						DOB: userProfile.DOB,
+				c.JSON(200, gin.H{"status": "Success update data",
+					"data": UserProfile{
+						UserId:      userId,
+						FullName:    userProfile.FullName,
+						Address:     userProfile.Address,
+						DOB:         userProfile.DOB,
 						PhoneNumber: userProfile.PhoneNumber,
-						City: userProfile.City,
-						Gender: userProfile.Gender,
+						City:        userProfile.City,
+						Gender:      userProfile.Gender,
 					},
 				})
 			}
@@ -2301,18 +2319,17 @@ func PutProfileUpdate(c *gin.Context) {
 			if insert := db.QueryRow(`INSERT INTO userprofile(user_id, full_name, address,
 				dob, phone_number, gender, city) VALUES($1, $2, $3, $4, $5, $6, $7)`, userId,
 				userProfile.FullName, userProfile.Address,
-				userProfile.DOB, userProfile.PhoneNumber, userProfile.Gender, userProfile.City);
-			insert != nil {
+				userProfile.DOB, userProfile.PhoneNumber, userProfile.Gender, userProfile.City); insert != nil {
 
-				c.JSON(200, gin.H{"status" : "Success update data",
-					"data" : UserProfile{
-						UserId: userId,
-						FullName: userProfile.FullName,
-						Address: userProfile.Address,
-						DOB: userProfile.DOB,
+				c.JSON(200, gin.H{"status": "Success update data",
+					"data": UserProfile{
+						UserId:      userId,
+						FullName:    userProfile.FullName,
+						Address:     userProfile.Address,
+						DOB:         userProfile.DOB,
 						PhoneNumber: userProfile.PhoneNumber,
-						City: userProfile.City,
-						Gender: userProfile.Gender,
+						City:        userProfile.City,
+						Gender:      userProfile.Gender,
 					},
 				})
 			}
@@ -2328,12 +2345,11 @@ func PutDeviceTokenUpdate(c *gin.Context) {
 
 	if userId != -1 {
 		if update := db.QueryRow(`UPDATE useraccount SET device_token=$1 WHERE id=$2`,
-			userAccount.DeviceToken, userId);
-		update != nil {
-			c.JSON(200, gin.H{"success" : "Device token updated" })
+			userAccount.DeviceToken, userId); update != nil {
+			c.JSON(200, gin.H{"success": "Device token updated"})
 		}
 	} else {
-		c.JSON(400, gin.H{"error" : "Account not found"})
+		c.JSON(400, gin.H{"error": "Account not found"})
 	}
 }
 
@@ -2345,12 +2361,11 @@ func PutProviderDeviceTokenUpdate(c *gin.Context) {
 
 	if providerId != -1 {
 		if update := db.QueryRow(`UPDATE provideraccount SET device_token=$1 WHERE provider_id=$2`,
-			providerAccount.DeviceToken, providerId);
-		update != nil {
-			c.JSON(200, gin.H{"success" : "Device token updated" })
+			providerAccount.DeviceToken, providerId); update != nil {
+			c.JSON(200, gin.H{"success": "Device token updated"})
 		}
 	} else {
-		c.JSON(400, gin.H{"error" : "Account not found"})
+		c.JSON(400, gin.H{"error": "Account not found"})
 	}
 }
 
@@ -2386,13 +2401,13 @@ func GetUserProfile(c *gin.Context) {
 	userProfile := getUserProfile(userId)
 
 	c.JSON(200, UserProfile{
-		UserId: userProfile.UserId,
-		FullName: userProfile.FullName,
-		Address: userProfile.Address,
-		DOB: userProfile.DOB,
+		UserId:      userProfile.UserId,
+		FullName:    userProfile.FullName,
+		Address:     userProfile.Address,
+		DOB:         userProfile.DOB,
 		PhoneNumber: userProfile.PhoneNumber,
-		City: userProfile.City,
-		Gender: userProfile.Gender.String,
+		City:        userProfile.City,
+		Gender:      userProfile.Gender.String,
 	})
 }
 
@@ -2428,24 +2443,24 @@ func GetProviderOrder(c *gin.Context) {
 
 			for _, row := range orderListWithNilValue {
 				orderItem := OrderItemListProvider{
-					Id: row.Id,
-					JasaId: row.JasaId,
-					JasaName: row.JasaName,
-					CustomerId: row.CustomerId,
-					CustomerName : row.CustomerName,
+					Id:               row.Id,
+					JasaId:           row.JasaId,
+					JasaName:         row.JasaName,
+					CustomerId:       row.CustomerId,
+					CustomerName:     row.CustomerName,
 					CustomerDomisili: row.CustomerDomisili,
-					Destination: row.Destination,
-					Latitude: row.Latitude,
-					Longitude: row.Longitude,
-					Price: row.Price,
-					Status: row.Status,
-					OrderDate: row.OrderDate,
-					CompleteDate: row.CompleteDate.Int64,
+					Destination:      row.Destination,
+					Latitude:         row.Latitude,
+					Longitude:        row.Longitude,
+					Price:            row.Price,
+					Status:           row.Status,
+					OrderDate:        row.OrderDate,
+					CompleteDate:     row.CompleteDate.Int64,
 				}
 				orderItems = append(orderItems, orderItem)
 			}
 
-			c.JSON(200, gin.H{"data" : orderItems})
+			c.JSON(200, gin.H{"data": orderItems})
 		} else {
 			checkErr(err, "Select failed")
 		}
@@ -2473,24 +2488,24 @@ func GetProviderOrder(c *gin.Context) {
 
 			for _, row := range orderListWithNilValue {
 				orderItem := OrderItemListProvider{
-					Id: row.Id,
-					JasaId: row.JasaId,
-					JasaName: row.JasaName,
-					CustomerId: row.CustomerId,
-					CustomerName : row.CustomerName,
+					Id:               row.Id,
+					JasaId:           row.JasaId,
+					JasaName:         row.JasaName,
+					CustomerId:       row.CustomerId,
+					CustomerName:     row.CustomerName,
 					CustomerDomisili: row.CustomerDomisili,
-					Destination: row.Destination,
-					Latitude: row.Latitude,
-					Longitude: row.Longitude,
-					Price: row.Price,
-					Status: row.Status,
-					OrderDate: row.OrderDate,
-					CompleteDate: row.CompleteDate.Int64,
+					Destination:      row.Destination,
+					Latitude:         row.Latitude,
+					Longitude:        row.Longitude,
+					Price:            row.Price,
+					Status:           row.Status,
+					OrderDate:        row.OrderDate,
+					CompleteDate:     row.CompleteDate.Int64,
 				}
 				orderItems = append(orderItems, orderItem)
 			}
 
-			c.JSON(200, gin.H{"data" : orderItems})
+			c.JSON(200, gin.H{"data": orderItems})
 		} else {
 			checkErr(err, "Select failed")
 		}
@@ -2517,24 +2532,24 @@ func GetProviderOrder(c *gin.Context) {
 
 			for _, row := range orderListWithNilValue {
 				orderItem := OrderItemListProvider{
-					Id: row.Id,
-					JasaId: row.JasaId,
-					JasaName: row.JasaName,
-					CustomerId: row.CustomerId,
-					CustomerName : row.CustomerName,
+					Id:               row.Id,
+					JasaId:           row.JasaId,
+					JasaName:         row.JasaName,
+					CustomerId:       row.CustomerId,
+					CustomerName:     row.CustomerName,
 					CustomerDomisili: row.CustomerDomisili,
-					Destination: row.Destination,
-					Latitude: row.Latitude,
-					Longitude: row.Longitude,
-					Price: row.Price,
-					Status: row.Status,
-					OrderDate: row.OrderDate,
-					CompleteDate: row.CompleteDate.Int64,
+					Destination:      row.Destination,
+					Latitude:         row.Latitude,
+					Longitude:        row.Longitude,
+					Price:            row.Price,
+					Status:           row.Status,
+					OrderDate:        row.OrderDate,
+					CompleteDate:     row.CompleteDate.Int64,
 				}
 				orderItems = append(orderItems, orderItem)
 			}
 
-			c.JSON(200, gin.H{"data" : orderItems})
+			c.JSON(200, gin.H{"data": orderItems})
 		} else {
 			checkErr(err, "Select failed")
 		}
@@ -2569,23 +2584,52 @@ func GetProviderOrderDetail(c *gin.Context) {
 		FROM ordervendordetail WHERE order_id=$1`, orderId)
 
 	if err == nil && errOrderDetailItem == nil {
-		c.JSON(200, gin.H { "order_info" : OrderItemListProvider{
-			Id: orderItemWithNilValue.Id,
-			JasaId: orderItemWithNilValue.JasaId,
-			JasaName: orderItemWithNilValue.JasaName,
-			CustomerId: orderItemWithNilValue.CustomerId,
-			CustomerName: orderItemWithNilValue.CustomerName,
+		c.JSON(200, gin.H{"order_info": OrderItemListProvider{
+			Id:               orderItemWithNilValue.Id,
+			JasaId:           orderItemWithNilValue.JasaId,
+			JasaName:         orderItemWithNilValue.JasaName,
+			CustomerId:       orderItemWithNilValue.CustomerId,
+			CustomerName:     orderItemWithNilValue.CustomerName,
 			CustomerDomisili: orderItemWithNilValue.CustomerDomisili,
-			Destination: orderItemWithNilValue.Destination,
-			Latitude: orderItemWithNilValue.Latitude,
-			Longitude: orderItemWithNilValue.Longitude,
-			Price: orderItemWithNilValue.Price,
-			Status: orderItemWithNilValue.Status,
-			OrderDate: orderItemWithNilValue.OrderDate,
-			CompleteDate: orderItemWithNilValue.CompleteDate.Int64,
-		}, "orders" : orderDetail })
+			Destination:      orderItemWithNilValue.Destination,
+			Latitude:         orderItemWithNilValue.Latitude,
+			Longitude:        orderItemWithNilValue.Longitude,
+			Price:            orderItemWithNilValue.Price,
+			Status:           orderItemWithNilValue.Status,
+			OrderDate:        orderItemWithNilValue.OrderDate,
+			CompleteDate:     orderItemWithNilValue.CompleteDate.Int64,
+		}, "orders": orderDetail})
 	} else {
 		checkErr(err, "select info failed")
 		checkErr(errOrderDetailItem, "select detail failed")
+	}
+}
+
+func PostOrderCancel(c *gin.Context) {
+	var orderCancel OrderCancel
+	c.Bind(&orderCancel)
+
+	// check if order_id is valid
+	var checkValidOrder OrderVendor
+	errValid := dbmap.SelectOne(&checkValidOrder, `SELECT id FROM ordervendor WHERE id=$1`, orderCancel.OrderId)
+
+	if errValid != nil {
+		c.JSON(400, gin.H{"error" : "Invalid order"})
+		return
+	}
+
+	// check if order_id was canceled or not
+	var checkCancelOrder OrderCancel
+	err := dbmap.SelectOne(&checkCancelOrder, "SELECT id FROM ordercancel WHERE order_id=$1", orderCancel.OrderId)
+
+	if err != nil {
+		if insert := db.QueryRow(`INSERT INTO ordercancel(journey_id, order_id, canceled_by, message)
+		 	VALUES($1, $2, $3, $4)`, orderCancel.JourneyId, orderCancel.OrderId,
+			orderCancel.CanceledBy, orderCancel.Message);
+			insert != nil {
+			c.JSON(200, gin.H{"success":"Order is cancel"})
+		}
+	} else {
+		c.JSON(400, gin.H{"error": "This order was canceled"})
 	}
 }
