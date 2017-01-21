@@ -758,21 +758,6 @@ type OrderItemList struct {
 	CompleteDate int64   `db:"complete_date" json:"complete_date"`
 }
 
-type OrderItemListWithNilValue struct {
-	Id           int64         `db:"id" json:"id"`
-	JasaId       int64         `db:"jasa_id" json:"jasa_id"`
-	JasaName     string        `db:"jasa_name" json:"jasa_name"`
-	VendorId     int64         `db:"vendor_id" json:"vendor_id"`
-	VendorName   string        `db:"vendor_name" json:"vendor_name"`
-	Destination  string        `db:"destination" json:"destination"`
-	Latitude     float64       `db:"latitude" json:"latitude"`
-	Longitude    float64       `db:"longitude" json:"longitude"`
-	Price        int64         `db:"price" json:"price"`
-	Status       int           `db:"status" json:"status"`
-	OrderDate    int64         `db:"order_date" json:"order_date"`
-	CompleteDate sql.NullInt64 `db:"complete_date" json:"complete_date"`
-}
-
 type OrderItemListProvider struct {
 	Id               int64   `db:"id" json:"id"`
 	JasaId           int64   `db:"jasa_id" json:"jasa_id"`
@@ -787,22 +772,9 @@ type OrderItemListProvider struct {
 	Status           int     `db:"status" json:"status"`
 	OrderDate        int64   `db:"order_date" json:"order_date"`
 	CompleteDate     int64   `db:"complete_date" json:"complete_date"`
-}
-
-type OrderItemListProviderWithNilValue struct {
-	Id               int64         `db:"id" json:"id"`
-	JasaId           int64         `db:"jasa_id" json:"jasa_id"`
-	JasaName         string        `db:"jasa_name" json:"jasa_name"`
-	CustomerId       int64         `db:"customer_id" json:"customer_id"`
-	CustomerName     string        `db:"customer_name" json:"customer_name"`
-	CustomerDomisili string        `db:"customer_domisili" json:"customer_domisili"`
-	Destination      string        `db:"destination" json:"destination"`
-	Latitude         float64       `db:"latitude" json:"latitude"`
-	Longitude        float64       `db:"longitude" json:"longitude"`
-	Price            int64         `db:"price" json:"price"`
-	Status           int           `db:"status" json:"status"`
-	OrderDate        int64         `db:"order_date" json:"order_date"`
-	CompleteDate     sql.NullInt64 `db:"complete_date" json:"complete_date"`
+	IsCanceled	bool `db:"is_canceled" json:"is_canceled"`
+	CanceledBy	int8 `db:"canceled_by" json:"canceled_by"`
+	Message	string `db:"message" json:"message"`
 }
 
 type Query struct {
@@ -1737,15 +1709,15 @@ func GetUserOrder(c *gin.Context) {
 	var query Query
 	c.Bind(&query)
 
-	var orderListWithNilValue []OrderItemListWithNilValue
+	var orderItemList []OrderItemList
 
 	if query.LowerThan > 0 {
-		_, err := dbmap.Select(&orderListWithNilValue, `SELECT ov.id, ov.destination, ov.destination_lat as latitude, ov.destination_long as longitude, order_date,
+		_, err := dbmap.Select(&orderItemList, `SELECT ov.id, ov.destination, ov.destination_lat as latitude, ov.destination_long as longitude, order_date,
 		pd.id as vendor_id, pd.nama as vendor_name,
 		kj.id as jasa_id, kj.jenis as jasa_name,
 		otp.total_price as price,
 		ouj.status,
-		oouj.complete_date
+		CASE WHEN oouj.complete_date <> 0 THEN oouj.complete_date ELSE 0 END AS complete_date
 		FROM ordervendor ov
 			JOIN providerdata pd ON pd.id = ov.provider_id
 			JOIN kategorijasa kj ON kj.id = pd.jasa_id
@@ -1758,38 +1730,18 @@ func GetUserOrder(c *gin.Context) {
 		WHERE ov.user_id=$1 AND status < $2 ORDER BY ov.id ASC`, userId, query.LowerThan)
 
 		if err == nil {
-			orderLists := []OrderItemList{}
 
-			for _, row := range orderListWithNilValue {
-				orderItem := OrderItemList{
-					Id:           row.Id,
-					JasaId:       row.JasaId,
-					JasaName:     row.JasaName,
-					VendorId:     row.VendorId,
-					VendorName:   row.VendorName,
-					Destination:  row.Destination,
-					Latitude:     row.Latitude,
-					Longitude:    row.Longitude,
-					Price:        row.Price,
-					Status:       row.Status,
-					OrderDate:    row.OrderDate,
-					CompleteDate: row.CompleteDate.Int64,
-				}
-
-				orderLists = append(orderLists, orderItem)
-			}
-
-			c.JSON(200, gin.H{"data": orderLists})
+			c.JSON(200, gin.H{"data": orderItemList})
 		} else {
 			checkErr(err, "Select failed")
 		}
 	} else if query.GreaterThan > 0 {
-		_, err := dbmap.Select(&orderListWithNilValue, `SELECT ov.id, ov.destination, ov.destination_lat as latitude, ov.destination_long as longitude, order_date,
+		_, err := dbmap.Select(&orderItemList, `SELECT ov.id, ov.destination, ov.destination_lat as latitude, ov.destination_long as longitude, order_date,
 		pd.id as vendor_id, pd.nama as vendor_name,
 		kj.id as jasa_id, kj.jenis as jasa_name,
 		otp.total_price as price,
 		ouj.status,
-		oouj.complete_date
+		CASE WHEN oouj.complete_date <> 0 THEN oouj.complete_date ELSE 0 END AS complete_date
 		FROM ordervendor ov
 			JOIN providerdata pd ON pd.id = ov.provider_id
 			JOIN kategorijasa kj ON kj.id = pd.jasa_id
@@ -1802,38 +1754,18 @@ func GetUserOrder(c *gin.Context) {
 		WHERE ov.user_id=$1 AND status > $2 ORDER BY ov.id ASC`, userId, query.GreaterThan)
 
 		if err == nil {
-			orderLists := []OrderItemList{}
 
-			for _, row := range orderListWithNilValue {
-				orderItem := OrderItemList{
-					Id:           row.Id,
-					JasaId:       row.JasaId,
-					JasaName:     row.JasaName,
-					VendorId:     row.VendorId,
-					VendorName:   row.VendorName,
-					Destination:  row.Destination,
-					Latitude:     row.Latitude,
-					Longitude:    row.Longitude,
-					Price:        row.Price,
-					Status:       row.Status,
-					OrderDate:    row.OrderDate,
-					CompleteDate: row.CompleteDate.Int64,
-				}
-
-				orderLists = append(orderLists, orderItem)
-			}
-
-			c.JSON(200, gin.H{"data": orderLists})
+			c.JSON(200, gin.H{"data": orderItemList})
 		} else {
 			checkErr(err, "Select failed")
 		}
 	} else {
-		_, err := dbmap.Select(&orderListWithNilValue, `SELECT ov.id, ov.destination, ov.destination_lat as latitude, ov.destination_long as longitude, order_date,
+		_, err := dbmap.Select(&orderItemList, `SELECT ov.id, ov.destination, ov.destination_lat as latitude, ov.destination_long as longitude, order_date,
 		pd.id as vendor_id, pd.nama as vendor_name,
 		kj.id as jasa_id, kj.jenis as jasa_name,
 		otp.total_price as price,
 		ouj.status,
-		oouj.complete_date
+		CASE WHEN oouj.complete_date <> 0 THEN oouj.complete_date ELSE 0 END AS complete_date
 		FROM ordervendor ov
 			JOIN providerdata pd ON pd.id = ov.provider_id
 			JOIN kategorijasa kj ON kj.id = pd.jasa_id
@@ -1846,28 +1778,8 @@ func GetUserOrder(c *gin.Context) {
 		WHERE ov.user_id=$1 ORDER BY ov.id ASC`, userId)
 
 		if err == nil {
-			orderLists := []OrderItemList{}
 
-			for _, row := range orderListWithNilValue {
-				orderItem := OrderItemList{
-					Id:           row.Id,
-					JasaId:       row.JasaId,
-					JasaName:     row.JasaName,
-					VendorId:     row.VendorId,
-					VendorName:   row.VendorName,
-					Destination:  row.Destination,
-					Latitude:     row.Latitude,
-					Longitude:    row.Longitude,
-					Price:        row.Price,
-					Status:       row.Status,
-					OrderDate:    row.OrderDate,
-					CompleteDate: row.CompleteDate.Int64,
-				}
-
-				orderLists = append(orderLists, orderItem)
-			}
-
-			c.JSON(200, gin.H{"data": orderLists})
+			c.JSON(200, gin.H{"data": orderItemList})
 		} else {
 			checkErr(err, "Select failed")
 		}
@@ -2425,15 +2337,15 @@ func GetProviderOrder(c *gin.Context) {
 	var query Query
 	c.Bind(&query)
 
-	var orderListWithNilValue []OrderItemListProviderWithNilValue
+	var orderItemList []OrderItemListProvider
 
 	if query.LowerThan > 0 {
-		_, err := dbmap.Select(&orderListWithNilValue, `SELECT ov.id, ov.destination, ov.destination_lat as latitude, ov.destination_long as longitude, order_date,
+		_, err := dbmap.Select(&orderItemList, `SELECT ov.id, ov.destination, ov.destination_lat as latitude, ov.destination_long as longitude, order_date,
 		up.user_id as customer_id, up.full_name as customer_name, up.address as customer_domisili,
 		kj.id as jasa_id, kj.jenis as jasa_name,
 		otp.total_price as price,
 		ouj.status,
-		oouj.complete_date
+		CASE WHEN oouj.complete_date <> 0 THEN oouj.complete_date ELSE 0 END as complete_date
 		FROM ordervendor ov
 			JOIN userprofile up ON up.user_id = ov.user_id
 			JOIN providerdata pd ON pd.id = ov.provider_id
@@ -2447,38 +2359,17 @@ func GetProviderOrder(c *gin.Context) {
 		WHERE ov.provider_id=$1 AND status < $2 ORDER BY order_date ASC`, providerId, query.LowerThan)
 
 		if err == nil {
-			orderItems := []OrderItemListProvider{}
-
-			for _, row := range orderListWithNilValue {
-				orderItem := OrderItemListProvider{
-					Id:               row.Id,
-					JasaId:           row.JasaId,
-					JasaName:         row.JasaName,
-					CustomerId:       row.CustomerId,
-					CustomerName:     row.CustomerName,
-					CustomerDomisili: row.CustomerDomisili,
-					Destination:      row.Destination,
-					Latitude:         row.Latitude,
-					Longitude:        row.Longitude,
-					Price:            row.Price,
-					Status:           row.Status,
-					OrderDate:        row.OrderDate,
-					CompleteDate:     row.CompleteDate.Int64,
-				}
-				orderItems = append(orderItems, orderItem)
-			}
-
-			c.JSON(200, gin.H{"data": orderItems})
+			c.JSON(200, gin.H{"data": orderItemList})
 		} else {
 			checkErr(err, "Select failed")
 		}
 	} else if query.GreaterThan > 0 {
-		_, err := dbmap.Select(&orderListWithNilValue, `SELECT ov.id, ov.destination, ov.destination_lat as latitude, ov.destination_long as longitude, order_date,
+		_, err := dbmap.Select(&orderItemList, `SELECT ov.id, ov.destination, ov.destination_lat as latitude, ov.destination_long as longitude, order_date,
 		up.user_id as customer_id, up.full_name as customer_name, up.address as customer_domisili,
 		kj.id as jasa_id, kj.jenis as jasa_name,
 		otp.total_price as price,
 		ouj.status,
-		oouj.complete_date
+		CASE WHEN oouj.complete_date <> 0 THEN oouj.complete_date ELSE 0 END as complete_date
 		FROM ordervendor ov
 			JOIN userprofile up ON up.user_id = ov.user_id
 			JOIN providerdata pd ON pd.id = ov.provider_id
@@ -2492,37 +2383,21 @@ func GetProviderOrder(c *gin.Context) {
 		WHERE ov.provider_id=$1 AND status > $2 ORDER BY order_date ASC`, providerId, query.GreaterThan)
 
 		if err == nil {
-			orderItems := []OrderItemListProvider{}
-
-			for _, row := range orderListWithNilValue {
-				orderItem := OrderItemListProvider{
-					Id:               row.Id,
-					JasaId:           row.JasaId,
-					JasaName:         row.JasaName,
-					CustomerId:       row.CustomerId,
-					CustomerName:     row.CustomerName,
-					CustomerDomisili: row.CustomerDomisili,
-					Destination:      row.Destination,
-					Latitude:         row.Latitude,
-					Longitude:        row.Longitude,
-					Price:            row.Price,
-					Status:           row.Status,
-					OrderDate:        row.OrderDate,
-					CompleteDate:     row.CompleteDate.Int64,
-				}
-				orderItems = append(orderItems, orderItem)
+			if err == nil {
+				c.JSON(200, gin.H{"data": orderItemList})
+			} else {
+				checkErr(err, "Select failed")
 			}
-
-			c.JSON(200, gin.H{"data": orderItems})
 		} else {
 			checkErr(err, "Select failed")
 		}
 	} else {
-		_, err := dbmap.Select(&orderListWithNilValue, `SELECT ov.id, ov.destination, ov.destination_lat as latitude, ov.destination_long as longitude, order_date,
+		_, err := dbmap.Select(&orderItemList, `SELECT ov.id, ov.destination, ov.destination_lat as latitude, ov.destination_long as longitude, order_date,
 		up.user_id as customer_id, up.full_name as customer_name, up.address as customer_domisili,
 		kj.id as jasa_id, kj.jenis as jasa_name,
 		otp.total_price as price,
-		ouj.status, oouj.complete_date
+		ouj.status,
+		CASE WHEN oouj.complete_date <> 0 THEN oouj.complete_date ELSE 0 END as complete_date
 		FROM ordervendor ov
 			JOIN userprofile up ON up.user_id = ov.user_id
 			JOIN providerdata pd ON pd.id = ov.provider_id
@@ -2536,28 +2411,11 @@ func GetProviderOrder(c *gin.Context) {
 		WHERE ov.provider_id=$1 ORDER BY order_date ASC`, providerId)
 
 		if err == nil {
-			orderItems := []OrderItemListProvider{}
-
-			for _, row := range orderListWithNilValue {
-				orderItem := OrderItemListProvider{
-					Id:               row.Id,
-					JasaId:           row.JasaId,
-					JasaName:         row.JasaName,
-					CustomerId:       row.CustomerId,
-					CustomerName:     row.CustomerName,
-					CustomerDomisili: row.CustomerDomisili,
-					Destination:      row.Destination,
-					Latitude:         row.Latitude,
-					Longitude:        row.Longitude,
-					Price:            row.Price,
-					Status:           row.Status,
-					OrderDate:        row.OrderDate,
-					CompleteDate:     row.CompleteDate.Int64,
-				}
-				orderItems = append(orderItems, orderItem)
+			if err == nil {
+				c.JSON(200, gin.H{"data": orderItemList})
+			} else {
+				checkErr(err, "Select failed")
 			}
-
-			c.JSON(200, gin.H{"data": orderItems})
 		} else {
 			checkErr(err, "Select failed")
 		}
@@ -2567,13 +2425,16 @@ func GetProviderOrder(c *gin.Context) {
 func GetProviderOrderDetail(c *gin.Context) {
 	orderId := c.Params.ByName("order_id")
 
-	var orderItemWithNilValue OrderItemListProviderWithNilValue
-	err := dbmap.SelectOne(&orderItemWithNilValue, `SELECT ov.id, ov.destination, ov.destination_lat as latitude, ov.destination_long as longitude, order_date,
+	var orderItemList OrderItemListProvider
+	err := dbmap.SelectOne(&orderItemList, `SELECT ov.id, ov.destination, ov.destination_lat as latitude, ov.destination_long as longitude, order_date,
 		up.user_id as customer_id, up.full_name as customer_name, up.address as customer_domisili,
 		kj.id as jasa_id, kj.jenis as jasa_name,
 		otp.total_price as price,
 		ouj.status,
-		oouj.complete_date
+		CASE WHEN oouj.complete_date <> 0 THEN oouj.complete_date ELSE 0 END as complete_date,
+		CASE WHEN ouj.status = 7 THEN true ELSE false END AS is_canceled,
+		CASE WHEN ouj.status = 7 THEN oc.canceled_by ELSE 0 END AS canceled_by,
+		CASE WHEN ouj.status = 7 THEN oc.message ELSE '' END AS message
 		FROM ordervendor ov
 			JOIN userprofile up ON up.user_id = ov.user_id
 			JOIN providerdata pd ON pd.id = ov.provider_id
@@ -2584,6 +2445,7 @@ func GetProviderOrderDetail(c *gin.Context) {
 			JOIN (SELECT order_id, MAX(status) as status FROM ordervendorjourney GROUP BY order_id)
 				as ouj ON ouj.order_id = ov.id
 			LEFT JOIN (SELECT order_id, date as complete_date FROM ordervendorjourney WHERE status=6) as oouj ON oouj.order_id = ov.id
+			LEFT JOIN (SELECT order_id, canceled_by, message FROM ordercancel) as oc ON oc.order_id = ov.id
 		WHERE ov.id=$1`, orderId)
 
 	var orderDetail []OrderDetailItem
@@ -2592,21 +2454,9 @@ func GetProviderOrderDetail(c *gin.Context) {
 		FROM ordervendordetail WHERE order_id=$1`, orderId)
 
 	if err == nil && errOrderDetailItem == nil {
-		c.JSON(200, gin.H{"order_info": OrderItemListProvider{
-			Id:               orderItemWithNilValue.Id,
-			JasaId:           orderItemWithNilValue.JasaId,
-			JasaName:         orderItemWithNilValue.JasaName,
-			CustomerId:       orderItemWithNilValue.CustomerId,
-			CustomerName:     orderItemWithNilValue.CustomerName,
-			CustomerDomisili: orderItemWithNilValue.CustomerDomisili,
-			Destination:      orderItemWithNilValue.Destination,
-			Latitude:         orderItemWithNilValue.Latitude,
-			Longitude:        orderItemWithNilValue.Longitude,
-			Price:            orderItemWithNilValue.Price,
-			Status:           orderItemWithNilValue.Status,
-			OrderDate:        orderItemWithNilValue.OrderDate,
-			CompleteDate:     orderItemWithNilValue.CompleteDate.Int64,
-		}, "orders": orderDetail})
+
+		c.JSON(200, gin.H{ "order_info": orderItemList, "orders": orderDetail })
+
 	} else {
 		checkErr(err, "select info failed")
 		checkErr(errOrderDetailItem, "select detail failed")
