@@ -815,6 +815,9 @@ type OrderJourneyItem struct {
 	Status    int    `db:"status" json:"status"`
 	Date      int64  `db:"date" json:"date"`
 	JenisJasa string `db:"jenis_jasa" json:"jenis_jasa"`
+	IsCanceled bool `db:"is_canceled" json:"is_canceled"`
+	CanceledBy int8 `db:"canceled_by" json:"canceled_by"`
+	Message string `db:"message" json:"message"`
 }
 
 type OrderDetailItem struct {
@@ -1888,11 +1891,15 @@ func GetOrderDetail(c *gin.Context) {
 
 	var orderJourney []OrderJourneyItem
 	_, errOrderJourney := dbmap.Select(&orderJourney,
-		`SELECT ovj.id, status, ovj.date, jenis as jenis_jasa
+		`SELECT ovj.id, status, ovj.date, jenis as jenis_jasa,
+			CASE WHEN ovj.status = 7 THEN true ELSE false END as is_canceled,
+			CASE WHEN ovj.status = 7 THEN oc.canceled_by ELSE 0 END as canceled_by,
+			CASE WHEN ovj.status = 7 THEN oc.message ELSE '' END as message
 		FROM ordervendorjourney ovj
 			JOIN ordervendor ov ON ov.id = ovj.order_id
 			JOIN providerdata pd ON pd.id = ov.provider_id
 			JOIN kategorijasa kj ON kj.id = pd.jasa_id
+			LEFT JOIN ordercancel oc ON oc.order_id = ovj.order_id
 		WHERE ov.id=$1`, orderId)
 
 	var orderDetail []OrderDetailItem
