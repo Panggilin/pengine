@@ -153,7 +153,7 @@ func main() {
 		v1.PUT("/user/profile/update", TokenAuthUserMiddleware(), PutProfileUpdate)
 		v1.PUT("/user/devicetoken/update", TokenAuthUserMiddleware(), PutDeviceTokenUpdate)
 		v1.GET("/user/me", TokenAuthUserMiddleware(), GetUserProfile)
-		v1.POST("/order/cancel",  TokenAuthUserMiddleware(), PostOrderCancel)
+		v1.POST("/user/order/cancel",  TokenAuthUserMiddleware(), PostOrderCancel)
 
 		v1.POST("/provider/mylocation", TokenAuthProviderMiddleware(), PostMyLocationProvider)
 		v1.POST("/provider/price/add", TokenAuthProviderMiddleware(), PostAddProviderPriceList)
@@ -171,6 +171,7 @@ func main() {
 		v1.GET("/provider/order/me", TokenAuthProviderMiddleware(), GetProviderOrder)
 		v1.GET("/provider/order/detail/:order_id", TokenAuthProviderMiddleware(), GetProviderOrderDetail)
 		v1.PUT("/provider/devicetoken/update", TokenAuthProviderMiddleware(), PutProviderDeviceTokenUpdate)
+		v1.POST("/provider/order/cancel",  TokenAuthProviderMiddleware(), PostOrderCancel)
 	}
 
 	r.Run(GetPort())
