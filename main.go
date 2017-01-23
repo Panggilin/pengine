@@ -1727,7 +1727,7 @@ func GetUserOrder(c *gin.Context) {
 				as otp ON otp.order_id = ov.id
 			JOIN (	SELECT order_id, MAX(status) as status FROM ordervendorjourney WHERE order_id IN (SELECT id FROM ordervendor WHERE user_id=$1) GROUP BY order_id)
 				as ouj ON ouj.order_id = ov.id
-			LEFT JOIN (SELECT order_id, date as complete_date FROM ordervendorjourney WHERE status=6) as oouj ON oouj.order_id = ov.id
+			LEFT JOIN (SELECT order_id, date as complete_date FROM ordervendorjourney WHERE status=6 OR status=7) as oouj ON oouj.order_id = ov.id
 		WHERE ov.user_id=$1 AND status < $2 ORDER BY ov.id ASC`, userId, query.LowerThan)
 
 		if err == nil {
@@ -1751,7 +1751,7 @@ func GetUserOrder(c *gin.Context) {
 				as otp ON otp.order_id = ov.id
 			JOIN (	SELECT order_id, MAX(status) as status FROM ordervendorjourney WHERE order_id IN (SELECT id FROM ordervendor WHERE user_id=$1) GROUP BY order_id)
 				as ouj ON ouj.order_id = ov.id
-			LEFT JOIN (SELECT order_id, date as complete_date FROM ordervendorjourney WHERE status=6) as oouj ON oouj.order_id = ov.id
+			LEFT JOIN (SELECT order_id, date as complete_date FROM ordervendorjourney WHERE status=6 OR status=7) as oouj ON oouj.order_id = ov.id
 		WHERE ov.user_id=$1 AND status > $2 ORDER BY ov.id ASC`, userId, query.GreaterThan)
 
 		if err == nil {
@@ -1775,7 +1775,7 @@ func GetUserOrder(c *gin.Context) {
 				as otp ON otp.order_id = ov.id
 			JOIN (	SELECT order_id, MAX(status) as status FROM ordervendorjourney WHERE order_id IN (SELECT id FROM ordervendor WHERE user_id=$1) GROUP BY order_id)
 				as ouj ON ouj.order_id = ov.id
-			LEFT JOIN (SELECT order_id, date as complete_date FROM ordervendorjourney WHERE status=6) as oouj ON oouj.order_id = ov.id
+			LEFT JOIN (SELECT order_id, date as complete_date FROM ordervendorjourney WHERE status=6 OR status=7) as oouj ON oouj.order_id = ov.id
 		WHERE ov.user_id=$1 ORDER BY ov.id ASC`, userId)
 
 		if err == nil {
@@ -2371,7 +2371,7 @@ func GetProviderOrder(c *gin.Context) {
 				as otp ON otp.order_id = ov.id
 			JOIN (SELECT order_id, MAX(status) as status FROM ordervendorjourney WHERE order_id IN (SELECT id FROM ordervendor WHERE provider_id=$1) GROUP BY order_id)
 				as ouj ON ouj.order_id = ov.id
-			LEFT JOIN (SELECT order_id, date as complete_date FROM ordervendorjourney WHERE status=6) as oouj ON oouj.order_id = ov.id
+			LEFT JOIN (SELECT order_id, date as complete_date FROM ordervendorjourney WHERE status=6 OR status=7) as oouj ON oouj.order_id = ov.id
 		WHERE ov.provider_id=$1 AND status < $2 ORDER BY order_date ASC`, providerId, query.LowerThan)
 
 		if err == nil {
@@ -2395,7 +2395,7 @@ func GetProviderOrder(c *gin.Context) {
 				as otp ON otp.order_id = ov.id
 			JOIN (SELECT order_id, MAX(status) as status FROM ordervendorjourney WHERE order_id IN (SELECT id FROM ordervendor WHERE provider_id=$1) GROUP BY order_id)
 				as ouj ON ouj.order_id = ov.id
-			LEFT JOIN (SELECT order_id, date as complete_date FROM ordervendorjourney WHERE status=6) as oouj ON oouj.order_id = ov.id
+			LEFT JOIN (SELECT order_id, date as complete_date FROM ordervendorjourney WHERE status=6 OR status=7) as oouj ON oouj.order_id = ov.id
 		WHERE ov.provider_id=$1 AND status > $2 ORDER BY order_date ASC`, providerId, query.GreaterThan)
 
 		if err == nil {
@@ -2423,7 +2423,7 @@ func GetProviderOrder(c *gin.Context) {
 				as otp ON otp.order_id = ov.id
 			JOIN (SELECT order_id, MAX(status) as status FROM ordervendorjourney WHERE order_id IN (SELECT id FROM ordervendor WHERE provider_id=$1) GROUP BY order_id)
 				as ouj ON ouj.order_id = ov.id
-			LEFT JOIN (SELECT order_id, date as complete_date FROM ordervendorjourney WHERE status=6) as oouj ON oouj.order_id = ov.id
+			LEFT JOIN (SELECT order_id, date as complete_date FROM ordervendorjourney WHERE status=6 OR status=7) as oouj ON oouj.order_id = ov.id
 		WHERE ov.provider_id=$1 ORDER BY order_date ASC`, providerId)
 
 		if err == nil {
@@ -2460,7 +2460,7 @@ func GetProviderOrderDetail(c *gin.Context) {
 				as otp ON otp.order_id = ov.id
 			JOIN (SELECT order_id, MAX(status) as status FROM ordervendorjourney GROUP BY order_id)
 				as ouj ON ouj.order_id = ov.id
-			LEFT JOIN (SELECT order_id, date as complete_date FROM ordervendorjourney WHERE status=6) as oouj ON oouj.order_id = ov.id
+			LEFT JOIN (SELECT order_id, date as complete_date FROM ordervendorjourney WHERE status=6 OR status=7) as oouj ON oouj.order_id = ov.id
 			LEFT JOIN (SELECT order_id, canceled_by, message FROM ordercancel) as oc ON oc.order_id = ov.id
 		WHERE ov.id=$1`, orderId)
 
