@@ -517,6 +517,7 @@ type OrderVendorJourney struct {
 	OrderId int64 `db:"order_id" json:"order_id"`
 	Status  int64 `db:"status"`
 	Date    int64 `db:"date" json:"date"`
+	Message string `db:"message" json:"message"`
 }
 
 /**
@@ -1838,8 +1839,23 @@ func PostNewOrderJourney(c *gin.Context) {
 	c.Bind(&orderVendorJourney)
 
 	if insert := db.QueryRow(`INSERT INTO ordervendorjourney(order_id, status, date)
-	VALUES($1, $2, $3)`,
-		orderVendorJourney.OrderId, orderVendorJourney.Status, time.Now().Unix()); insert != nil {
+	VALUES($1, $2, $3) RETURNING id`,
+		orderVendorJourney.OrderId, orderVendorJourney.Status, time.Now().Unix());
+
+	insert != nil {
+
+		var journeyId int64
+
+		insert.Scan(&journeyId)
+
+		orderCancel := OrderCancel{
+			JourneyId: journeyId,
+			OrderId: orderVendorJourney.OrderId,
+			CanceledBy: 2,
+			Message: orderVendorJourney.Message,
+		}
+
+		handleCancelOrder(c, orderCancel)
 
 		sendNotificationToCustomer(orderVendorJourney.OrderId, orderVendorJourney.Status)
 
@@ -2484,10 +2500,22 @@ func PostOrderCancel(c *gin.Context) {
 		if insert := db.QueryRow(`INSERT INTO ordercancel(journey_id, order_id, canceled_by, message)
 		 	VALUES($1, $2, $3, $4)`, orderCancel.JourneyId, orderCancel.OrderId,
 			orderCancel.CanceledBy, orderCancel.Message);
-			insert != nil {
+		insert != nil {
 			c.JSON(200, gin.H{"success":"Order is cancel"})
 		}
 	} else {
 		c.JSON(400, gin.H{"error": "This order was canceled"})
+	}
+}
+
+func handleCancelOrder(c *gin.Context, orderCancel OrderCancel) {
+	// check if order_id was canceled or not
+	var checkCancelOrder OrderCancel
+	err := dbmap.SelectOne(&checkCancelOrder, "SELECT id FROM ordercancel WHERE order_id=$1", orderCancel.OrderId)
+
+	if err != nil {
+		db.QueryRow(`INSERT INTO ordercancel(journey_id, order_id, canceled_by, message)
+		 	VALUES($1, $2, $3, $4)`, orderCancel.JourneyId, orderCancel.OrderId,
+			orderCancel.CanceledBy, orderCancel.Message)
 	}
 }
