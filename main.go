@@ -154,6 +154,7 @@ func main() {
 		v1.PUT("/user/devicetoken/update", TokenAuthUserMiddleware(), PutDeviceTokenUpdate)
 		v1.GET("/user/me", TokenAuthUserMiddleware(), GetUserProfile)
 		v1.POST("/user/order/cancel",  TokenAuthUserMiddleware(), PostOrderCancel)
+		v1.POST("/user/order/status", TokenAuthUserMiddleware(), PostUserNewOrderJourney)
 
 		v1.POST("/provider/mylocation", TokenAuthProviderMiddleware(), PostMyLocationProvider)
 		v1.POST("/provider/price/add", TokenAuthProviderMiddleware(), PostAddProviderPriceList)
@@ -1859,11 +1860,42 @@ func PostNewOrderJourney(c *gin.Context) {
 
 		sendNotificationToCustomer(orderVendorJourney.OrderId, orderVendorJourney.Status)
 
-		c.JSON(200, gin.H{"status": "success"})
+		c.JSON(200, gin.H{"status": "Pesanan telah dibatalkan."})
 	} else {
 		c.JSON(400, gin.H{"error": "Failed update order status"})
 	}
 
+}
+
+func PostUserNewOrderJourney(c *gin.Context) {
+	var orderVendorJourney OrderVendorJourney
+	c.Bind(&orderVendorJourney)
+
+	if insert := db.QueryRow(`INSERT INTO ordervendorjourney(order_id, status, date)
+	VALUES($1, $2, $3) RETURNING id`,
+		orderVendorJourney.OrderId, orderVendorJourney.Status, time.Now().Unix());
+
+	insert != nil {
+
+		var journeyId int64
+
+		insert.Scan(&journeyId)
+
+		orderCancel := OrderCancel{
+			JourneyId: journeyId,
+			OrderId: orderVendorJourney.OrderId,
+			CanceledBy: 1,
+			Message: orderVendorJourney.Message,
+		}
+
+		handleCancelOrder(c, orderCancel)
+
+		sendNotificationToProvider(orderVendorJourney.OrderId, orderVendorJourney.Status)
+
+		c.JSON(200, gin.H{"status": "Pesanan telah dibatalkan"})
+	} else {
+		c.JSON(400, gin.H{"error": "Failed update order status"})
+	}
 }
 
 type UserNotification struct {
@@ -1920,6 +1952,13 @@ func sendNotificationToProvider(orderId int64, status int64) {
 		data := map[string]string{
 			"message":  "Anda mendapatkan pesanan baru.",
 			"order_id": strconv.FormatInt(orderId, 10),
+		}
+
+		if status == 7 {
+			data = map[string]string{
+				"message":  "Pesanan dibatalkan.",
+				"order_id": strconv.FormatInt(orderId, 10),
+			}
 		}
 
 		ids := []string{
