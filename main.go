@@ -1697,7 +1697,7 @@ func PostNewOrder(c *gin.Context) {
 
 				sendNotificationToProvider(orderId, 0)
 
-				c.JSON(200, gin.H{"status": "Success order"})
+				c.JSON(200, gin.H{"order_id": orderId})
 			} else {
 				checkErr(err, "Insert transaction failed")
 			}
