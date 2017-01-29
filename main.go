@@ -984,7 +984,9 @@ func GetProvidersByCategory(c *gin.Context) {
 	}
 
 	var providerByCat []ProviderByCat
-	_, err := dbmap.Select(&providerByCat, `
+
+	if (jasaId != "0") {
+		_, err := dbmap.Select(&providerByCat, `
 	SELECT pd.id, pd.nama, pl.latitude, pl.longitude, min_price, max_price, rating,
 earth_distance(ll_to_earth($1, $2), ll_to_earth(pl.latitude, pl.longitude))
 AS distance
@@ -1007,25 +1009,69 @@ WHERE pd.jasa_id=$3
 ORDER BY distance ASC;
 	`, lat, long, jasaId, searchDistance)
 
-	if err == nil {
-		listProviders := []ListProviderByCat{}
-		for _, row := range providerByCat {
-			listProviderItem := ListProviderByCat{
-				Id:        row.Id,
-				Nama:      row.Nama,
-				Latitude:  row.Latitude,
-				Longitude: row.Longitude,
-				MinPrice:  row.MinPrice.Int64,
-				MaxPrice:  row.MaxPrice.Int64,
-				Rating:    row.Rating.Float64,
-				Distance:  row.Distance,
+		if err == nil {
+			listProviders := []ListProviderByCat{}
+			for _, row := range providerByCat {
+				listProviderItem := ListProviderByCat{
+					Id:        row.Id,
+					Nama:      row.Nama,
+					Latitude:  row.Latitude,
+					Longitude: row.Longitude,
+					MinPrice:  row.MinPrice.Int64,
+					MaxPrice:  row.MaxPrice.Int64,
+					Rating:    row.Rating.Float64,
+					Distance:  row.Distance,
+				}
+				listProviders = append(listProviders, listProviderItem)
 			}
-			listProviders = append(listProviders, listProviderItem)
-		}
 
-		c.JSON(200, gin.H{"data": listProviders})
+			c.JSON(200, gin.H{"data": listProviders})
+		} else {
+			checkErr(err, "Select failed")
+		}
 	} else {
-		checkErr(err, "Select failed")
+		_, err := dbmap.Select(&providerByCat, `
+	SELECT pd.id, pd.nama, pl.latitude, pl.longitude, min_price, max_price, rating,
+earth_distance(ll_to_earth($1, $2), ll_to_earth(pl.latitude, pl.longitude))
+AS distance
+FROM providerdata pd join providerlocation pl on pl.provider_id = pd.id
+LEFT JOIN (
+	SELECT provider_id, MIN(service_price) as min_price, MAX(service_price)
+	as max_price
+	FROM providerpricelist
+	GROUP BY provider_id) pp
+ON pp.provider_id = pd.id
+LEFT JOIN (
+	SELECT provider_id, ((sum_rating + 0.0)/count)::float as rating
+	FROM (
+		SELECT provider_id, count(*) as count, sum(user_rating) sum_rating
+		FROM providerrating group by provider_id) rating_counter) pr
+ON pr.provider_id = pd.id
+WHERE earth_distance(ll_to_earth($1, $2),
+	ll_to_earth(pl.latitude, pl.longitude)) <= $3
+ORDER BY distance ASC;
+	`, lat, long, searchDistance)
+
+		if err == nil {
+			listProviders := []ListProviderByCat{}
+			for _, row := range providerByCat {
+				listProviderItem := ListProviderByCat{
+					Id:        row.Id,
+					Nama:      row.Nama,
+					Latitude:  row.Latitude,
+					Longitude: row.Longitude,
+					MinPrice:  row.MinPrice.Int64,
+					MaxPrice:  row.MaxPrice.Int64,
+					Rating:    row.Rating.Float64,
+					Distance:  row.Distance,
+				}
+				listProviders = append(listProviders, listProviderItem)
+			}
+
+			c.JSON(200, gin.H{"data": listProviders})
+		} else {
+			checkErr(err, "Select failed")
+		}
 	}
 }
 
