@@ -1988,11 +1988,16 @@ func sendNotificationToCustomer(orderId int64, status int64) {
 
 func sendNotificationToProvider(orderId int64, status int64) {
 	var userNotification UserNotification
-	err := dbmap.SelectOne(&userNotification, `SELECT ov.provider_id as account_id, pa.device_token
+	err := dbmap.SelectOne(&userNotification, `SELECT ov.provider_id as account_id,
+			COALESCE(pa.device_token, '-') as device_token
 	 	FROM ordervendor ov
 	 	 JOIN provideraccount pa ON pa.provider_id = ov.provider_id WHERE ov.id=$1`, orderId)
 
 	if err == nil {
+
+		if userNotification.DeviceToken == "-" {
+			return
+		}
 
 		// Create the message to be sent.
 		data := map[string]string{
