@@ -2049,7 +2049,7 @@ func getMessageBasedStatusForCustomer(status int64) string {
 	case 6:
 		return `Pesanan telah selesai. Terima kasih telah menggunakan jasa Kami. Semoga pelayanan kami memuaskan Anda. Jika Anda berkenan, mohon berikan penilaian Anda ketika menggunakan layanan Kami.`
 	case 7:
-		return `Pesanan dibatalkan.`
+		return `Pesanan ditolak.`
 	}
 
 	return ""
