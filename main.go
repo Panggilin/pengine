@@ -50,67 +50,70 @@ func initDb() *sql.DB {
 
 	//db, err := sql.Open("postgres", dbinfo)
 
-	db, err := sql.Open("postgres", os.Getenv("DATABASE_URL"))
+	dbInit, err := sql.Open("postgres", os.Getenv("DATABASE_URL"))
 
 	checkErr(err, "Failed open db")
-	return db
+	return dbInit
 }
 
 func initDbmap() *gorp.DbMap {
-	dbmap := &gorp.DbMap{Db: db, Dialect: gorp.PostgresDialect{}}
+	dbmapInit := &gorp.DbMap{Db: db, Dialect: gorp.PostgresDialect{}}
 
-	dbmap.AddTableWithName(ProviderAccount{}, "provideraccount").SetKeys(true, "Id")
-	checkErr(dbmap.CreateTablesIfNotExists(), "Create tables failed")
+	dbmapInit.AddTableWithName(ProviderAccount{}, "provideraccount").SetKeys(true, "Id")
+	checkErr(dbmapInit.CreateTablesIfNotExists(), "Create tables failed")
 
-	dbmap.AddTableWithName(ProviderData{}, "providerdata").SetKeys(true, "Id")
-	checkErr(dbmap.CreateTablesIfNotExists(), "Create tables failed")
+	dbmapInit.AddTableWithName(ProviderData{}, "providerdata").SetKeys(true, "Id")
+	checkErr(dbmapInit.CreateTablesIfNotExists(), "Create tables failed")
 
-	dbmap.AddTableWithName(ProviderLocation{}, "providerlocation").SetKeys(true, "Id")
-	checkErr(dbmap.CreateTablesIfNotExists(), "Create tables failed")
+	dbmapInit.AddTableWithName(ProviderLocation{}, "providerlocation").SetKeys(true, "Id")
+	checkErr(dbmapInit.CreateTablesIfNotExists(), "Create tables failed")
 
-	dbmap.AddTableWithName(KategoriJasa{}, "kategorijasa").SetKeys(true, "Id")
-	checkErr(dbmap.CreateTablesIfNotExists(), "Create tables failed")
+	dbmapInit.AddTableWithName(KategoriJasa{}, "kategorijasa").SetKeys(true, "Id")
+	checkErr(dbmapInit.CreateTablesIfNotExists(), "Create tables failed")
 
-	dbmap.AddTableWithName(ProviderPriceList{}, "providerpricelist").SetKeys(true, "Id")
-	checkErr(dbmap.CreateTablesIfNotExists(), "Create tables failed")
+	dbmapInit.AddTableWithName(ProviderPriceList{}, "providerpricelist").SetKeys(true, "Id")
+	checkErr(dbmapInit.CreateTablesIfNotExists(), "Create tables failed")
 
-	dbmap.AddTableWithName(ProviderRating{}, "providerrating").SetKeys(true, "Id")
-	checkErr(dbmap.CreateTablesIfNotExists(), "Create tables failed")
+	dbmapInit.AddTableWithName(ProviderRating{}, "providerrating").SetKeys(true, "Id")
+	checkErr(dbmapInit.CreateTablesIfNotExists(), "Create tables failed")
 
-	dbmap.AddTableWithName(ProviderGallery{}, "providergallery").SetKeys(true, "Id")
-	checkErr(dbmap.CreateTablesIfNotExists(), "Create tables failed")
+	dbmapInit.AddTableWithName(ProviderGallery{}, "providergallery").SetKeys(true, "Id")
+	checkErr(dbmapInit.CreateTablesIfNotExists(), "Create tables failed")
 
-	dbmap.AddTableWithName(ProviderProfileImage{}, "providerprofileimage").SetKeys(true, "Id")
-	checkErr(dbmap.CreateTablesIfNotExists(), "Create tables failed")
+	dbmapInit.AddTableWithName(ProviderProfileImage{}, "providerprofileimage").SetKeys(true, "Id")
+	checkErr(dbmapInit.CreateTablesIfNotExists(), "Create tables failed")
 
-	dbmap.AddTableWithName(OrderVendor{}, "ordervendor").SetKeys(true, "Id")
-	checkErr(dbmap.CreateTablesIfNotExists(), "Create tables failed")
+	dbmapInit.AddTableWithName(OrderVendor{}, "ordervendor").SetKeys(true, "Id")
+	checkErr(dbmapInit.CreateTablesIfNotExists(), "Create tables failed")
 
-	dbmap.AddTableWithName(OrderVendorDetail{}, "ordervendordetail").SetKeys(true, "Id")
-	checkErr(dbmap.CreateTablesIfNotExists(), "Create tables failed")
+	dbmapInit.AddTableWithName(OrderVendorDetail{}, "ordervendordetail").SetKeys(true, "Id")
+	checkErr(dbmapInit.CreateTablesIfNotExists(), "Create tables failed")
 
-	dbmap.AddTableWithName(OrderVendorJourney{}, "ordervendorjourney").SetKeys(true, "Id")
-	checkErr(dbmap.CreateTablesIfNotExists(), "Create tables failed")
+	dbmapInit.AddTableWithName(OrderVendorJourney{}, "ordervendorjourney").SetKeys(true, "Id")
+	checkErr(dbmapInit.CreateTablesIfNotExists(), "Create tables failed")
 
-	dbmap.AddTableWithName(OrderVendorTracking{}, "ordervendortracking").SetKeys(true, "Id")
-	checkErr(dbmap.CreateTablesIfNotExists(), "Create tables failed")
+	dbmapInit.AddTableWithName(OrderVendorTracking{}, "ordervendortracking").SetKeys(true, "Id")
+	checkErr(dbmapInit.CreateTablesIfNotExists(), "Create tables failed")
 
-	dbmap.AddTableWithName(UserAccount{}, "useraccount").SetKeys(true, "Id")
-	checkErr(dbmap.CreateTablesIfNotExists(), "Create tables failed")
+	dbmapInit.AddTableWithName(UserAccount{}, "useraccount").SetKeys(true, "Id")
+	checkErr(dbmapInit.CreateTablesIfNotExists(), "Create tables failed")
 
-	dbmap.AddTableWithName(UserProfile{}, "userprofile").SetKeys(true, "UserId")
-	checkErr(dbmap.CreateTablesIfNotExists(), "Create tables failed")
+	dbmapInit.AddTableWithName(UserProfile{}, "userprofile").SetKeys(true, "UserId")
+	checkErr(dbmapInit.CreateTablesIfNotExists(), "Create tables failed")
 
-	dbmap.AddTableWithName(AuthToken{}, "authtoken").SetKeys(true, "Id")
-	checkErr(dbmap.CreateTablesIfNotExists(), "Create tables failed")
+	dbmapInit.AddTableWithName(AuthToken{}, "authtoken").SetKeys(true, "Id")
+	checkErr(dbmapInit.CreateTablesIfNotExists(), "Create tables failed")
 
-	dbmap.AddTableWithName(AuthTokenProvider{}, "authtokenprovider").SetKeys(true, "Id")
-	checkErr(dbmap.CreateTablesIfNotExists(), "Create tables failed")
+	dbmapInit.AddTableWithName(AuthTokenProvider{}, "authtokenprovider").SetKeys(true, "Id")
+	checkErr(dbmapInit.CreateTablesIfNotExists(), "Create tables failed")
 
-	dbmap.AddTableWithName(OrderCancel{}, "ordercancel").SetKeys(true, "Id")
-	checkErr(dbmap.CreateTablesIfNotExists(), "Create tables failed")
+	dbmapInit.AddTableWithName(OrderCancel{}, "ordercancel").SetKeys(true, "Id")
+	checkErr(dbmapInit.CreateTablesIfNotExists(), "Create tables failed")
 
-	return dbmap
+	dbmapInit.AddTableWithName(Promo{}, "promo").SetKeys(true, "Id")
+	checkErr(dbmapInit.CreateTablesIfNotExists(), "Create tables failed")
+
+	return dbmapInit
 }
 
 func checkErr(err error, msg string) {
@@ -134,6 +137,7 @@ func main() {
 		v1.PUT("/provider/inactive", InActiveProvider)
 		v1.PUT("/provider/active", ActiveProvider)
 		v1.POST("/jasa/create", PostCreateNewJasa)
+		v1.POST("/promo/create", PostPromo)
 
 		v1.GET("/providers", TokenAuthUserMiddleware(), GetProviders)
 		v1.GET("/providers/near", TokenAuthUserMiddleware(), GetNearProviderForMap)
@@ -153,8 +157,9 @@ func main() {
 		v1.PUT("/user/profile/update", TokenAuthUserMiddleware(), PutProfileUpdate)
 		v1.PUT("/user/devicetoken/update", TokenAuthUserMiddleware(), PutDeviceTokenUpdate)
 		v1.GET("/user/me", TokenAuthUserMiddleware(), GetUserProfile)
-		v1.POST("/user/order/cancel",  TokenAuthUserMiddleware(), PostOrderCancel)
+		v1.POST("/user/order/cancel", TokenAuthUserMiddleware(), PostOrderCancel)
 		v1.POST("/user/order/status", TokenAuthUserMiddleware(), PostUserNewOrderJourney)
+		v1.GET("/user/promo", TokenAuthUserMiddleware(), GetUserPromo)
 
 		v1.POST("/provider/mylocation", TokenAuthProviderMiddleware(), PostMyLocationProvider)
 		v1.POST("/provider/price/add", TokenAuthProviderMiddleware(), PostAddProviderPriceList)
@@ -172,7 +177,8 @@ func main() {
 		v1.GET("/provider/order/me", TokenAuthProviderMiddleware(), GetProviderOrder)
 		v1.GET("/provider/order/detail/:order_id", TokenAuthProviderMiddleware(), GetProviderOrderDetail)
 		v1.PUT("/provider/devicetoken/update", TokenAuthProviderMiddleware(), PutProviderDeviceTokenUpdate)
-		v1.POST("/provider/order/cancel",  TokenAuthProviderMiddleware(), PostOrderCancel)
+		v1.POST("/provider/order/cancel", TokenAuthProviderMiddleware(), PostOrderCancel)
+		v1.PUT("/provider/maxdistance", TokenAuthProviderMiddleware(), PutProviderMaxDistance)
 	}
 
 	r.Run(GetPort())
@@ -268,6 +274,7 @@ Email
 Token
 DeviceId
 Status
+MaxDistance
 */
 type ProviderAccount struct {
 	Id          int64  `db:"id" json:"id"`
@@ -276,6 +283,7 @@ type ProviderAccount struct {
 	Password    string `db:"password" json:"password"`
 	DeviceToken string `db:"device_token" json:"device_token"`
 	Status      int64  `db:"status" json:"status"`
+	MaxDistance int64  `db:"max_distance" json:"max_distance"`
 }
 
 /**
@@ -376,7 +384,6 @@ type NearProviderForMap struct {
 	MinPrice  int32   `db:"min_price" json:"min_price"`
 	MaxPrice  int32   `db:"max_price" json:"max_price"`
 	Rating    float32 `db:"rating" json:"rating"`
-
 }
 
 /**
@@ -417,11 +424,11 @@ UserId
 UserRating
 */
 type ProviderRating struct {
-	Id         int64 `db:"id" json:"id"`
-	ProviderId int64 `db:"provider_id" json:"provider_id"`
-	UserId     int64 `db:"user_id" json:"user_id"`
-	UserRating int64 `db:"user_rating" json:"user_rating"`
-	Review	string `db:"review" json:"review"`
+	Id         int64  `db:"id" json:"id"`
+	ProviderId int64  `db:"provider_id" json:"provider_id"`
+	UserId     int64  `db:"user_id" json:"user_id"`
+	UserRating int64  `db:"user_rating" json:"user_rating"`
+	Review     string `db:"review" json:"review"`
 }
 
 /**
@@ -519,10 +526,10 @@ OrderId
 Status
 */
 type OrderVendorJourney struct {
-	Id      int64 `db:"id" json:"id"`
-	OrderId int64 `db:"order_id" json:"order_id"`
-	Status  int64 `db:"status"`
-	Date    int64 `db:"date" json:"date"`
+	Id      int64  `db:"id" json:"id"`
+	OrderId int64  `db:"order_id" json:"order_id"`
+	Status  int64  `db:"status"`
+	Date    int64  `db:"date" json:"date"`
 	Message string `db:"message" json:"message"`
 }
 
@@ -593,14 +600,14 @@ Rating
 Distance
 */
 type ProviderByCat struct {
-	Id        int64           `db:"id" json:"id"`
-	Nama      string          `db:"nama" json:"nama"`
-	Latitude  float64         `db:"latitude" json:"latitude"`
-	Longitude float64         `db:"longitude" json:"longitude"`
+	Id        int64   `db:"id" json:"id"`
+	Nama      string  `db:"nama" json:"nama"`
+	Latitude  float64 `db:"latitude" json:"latitude"`
+	Longitude float64 `db:"longitude" json:"longitude"`
 	MinPrice  int32   `db:"min_price" json:"min_price"`
 	MaxPrice  int32   `db:"max_price" json:"max_price"`
 	Rating    float32 `db:"rating" json:"rating"`
-	Distance  float64         `db:"distance" json:"distance"`
+	Distance  float64 `db:"distance" json:"distance"`
 }
 
 /**
@@ -748,6 +755,7 @@ type ProviderLoginAccount struct {
 	Email       string       `json:"email"`
 	PhoneNumber string       `json:"phone_number"`
 	AuthToken   AuthTokenRes `json:"auth_token"`
+	MaxDistance int64        `json:"max_distance"`
 }
 
 type OrderItemList struct {
@@ -779,9 +787,9 @@ type OrderItemListProvider struct {
 	Status           int     `db:"status" json:"status"`
 	OrderDate        int64   `db:"order_date" json:"order_date"`
 	CompleteDate     int64   `db:"complete_date" json:"complete_date"`
-	IsCanceled	bool `db:"is_canceled" json:"is_canceled"`
-	CanceledBy	int8 `db:"canceled_by" json:"canceled_by"`
-	Message	string `db:"message" json:"message"`
+	IsCanceled       bool    `db:"is_canceled" json:"is_canceled"`
+	CanceledBy       int8    `db:"canceled_by" json:"canceled_by"`
+	Message          string  `db:"message" json:"message"`
 }
 
 type Query struct {
@@ -790,13 +798,13 @@ type Query struct {
 }
 
 type OrderJourneyItem struct {
-	Id        int64  `db:"id" json:"id"`
-	Status    int    `db:"status" json:"status"`
-	Date      int64  `db:"date" json:"date"`
-	JenisJasa string `db:"jenis_jasa" json:"jenis_jasa"`
-	IsCanceled bool `db:"is_canceled" json:"is_canceled"`
-	CanceledBy int8 `db:"canceled_by" json:"canceled_by"`
-	Message string `db:"message" json:"message"`
+	Id         int64  `db:"id" json:"id"`
+	Status     int    `db:"status" json:"status"`
+	Date       int64  `db:"date" json:"date"`
+	JenisJasa  string `db:"jenis_jasa" json:"jenis_jasa"`
+	IsCanceled bool   `db:"is_canceled" json:"is_canceled"`
+	CanceledBy int8   `db:"canceled_by" json:"canceled_by"`
+	Message    string `db:"message" json:"message"`
 }
 
 type OrderDetailItem struct {
@@ -822,11 +830,21 @@ type PostSearchType struct {
 }
 
 type OrderCancel struct {
-	Id int64 `db:"id" json:"id"`
-	JourneyId int64 `db:"journey_id" json:"journey_id"`
-	OrderId int64 `db:"order_id" json:"order_id"`
-	CanceledBy int8 `db:"canceled_by" json:"canceled_by"`
-	Message string `db:"message" json:"message"`
+	Id         int64  `db:"id" json:"id"`
+	JourneyId  int64  `db:"journey_id" json:"journey_id"`
+	OrderId    int64  `db:"order_id" json:"order_id"`
+	CanceledBy int8   `db:"canceled_by" json:"canceled_by"`
+	Message    string `db:"message" json:"message"`
+}
+
+type Promo struct {
+	Id         int64  `db:"id" json:"id"`
+	Title      string `db:"title" json:"title"`
+	PromoImage string `db:"promo_image" json:"promo_image"`
+	StartDate  int64  `db:"start_date" json:"start_date"`
+	EndDate    int64  `db:"end_date" json:"end_date"`
+	Position   int8   `db:"position" json:"position"`
+	Active     int8   `db:"active" json:"active"`
 }
 
 // ========================== FUNC
@@ -928,7 +946,6 @@ func GetProvider(c *gin.Context) {
 	if errRating != nil {
 	}
 
-
 	c.JSON(200, gin.H{
 		"id":           providerBasicInfo.Id,
 		"nama":         providerBasicInfo.Nama,
@@ -940,8 +957,8 @@ func GetProvider(c *gin.Context) {
 		"profile_bg":   profileBgUrl,
 		"gallery":      providerGallery,
 		"price":        providerPriceList,
-		"job_que": len(jobQueProvider),
-		"rate_review": len(providerRating),
+		"job_que":      len(jobQueProvider),
+		"rate_review":  len(providerRating),
 	})
 
 }
@@ -1034,7 +1051,7 @@ func GetProvidersByCategory(c *gin.Context) {
 
 	var providerByCat []ProviderByCat
 
-	if (jasaId != "0") {
+	if jasaId != "0" {
 		_, err := dbmap.Select(&providerByCat, `
 	SELECT pd.id, pd.nama, pl.latitude, pl.longitude,
 		CASE WHEN min_price <> 0 THEN min_price ELSE 0 END as min_price,
@@ -1149,7 +1166,8 @@ func PostSignInProvider(c *gin.Context) {
 	c.Bind(&providerAccount)
 
 	var recProviderAccount ProviderAccount
-	err := dbmap.SelectOne(&recProviderAccount, `SELECT provider_id FROM provideraccount
+	err := dbmap.SelectOne(&recProviderAccount, `SELECT provider_id,
+		max_distance FROM provideraccount
 		WHERE email=$1 AND password=$2`, providerAccount.Email, providerAccount.Password)
 
 	if err == nil {
@@ -1181,6 +1199,7 @@ func PostSignInProvider(c *gin.Context) {
 			JasaName:    kategoryJasa.Jenis,
 			PhoneNumber: providerData.PhoneNumber,
 			Email:       providerAccount.Email,
+			MaxDistance: recProviderAccount.MaxDistance,
 			AuthToken: AuthTokenRes{
 				Token:       authTokenProvider.AuthToken,
 				ExpiredDate: authTokenProvider.ExpireDate,
@@ -1190,6 +1209,7 @@ func PostSignInProvider(c *gin.Context) {
 		c.JSON(200, loginAccount)
 
 	} else {
+		checkErr(err, "Select Failed")
 		c.JSON(400, gin.H{"error": "Account not exists"})
 	}
 }
@@ -1899,19 +1919,17 @@ func PostNewOrderJourney(c *gin.Context) {
 
 	if insert := db.QueryRow(`INSERT INTO ordervendorjourney(order_id, status, date)
 	VALUES($1, $2, $3) RETURNING id`,
-		orderVendorJourney.OrderId, orderVendorJourney.Status, time.Now().Unix());
-
-	insert != nil {
+		orderVendorJourney.OrderId, orderVendorJourney.Status, time.Now().Unix()); insert != nil {
 
 		var journeyId int64
 
 		insert.Scan(&journeyId)
 
 		orderCancel := OrderCancel{
-			JourneyId: journeyId,
-			OrderId: orderVendorJourney.OrderId,
+			JourneyId:  journeyId,
+			OrderId:    orderVendorJourney.OrderId,
 			CanceledBy: 2,
-			Message: orderVendorJourney.Message,
+			Message:    orderVendorJourney.Message,
 		}
 
 		handleCancelOrder(c, orderCancel)
@@ -1931,19 +1949,17 @@ func PostUserNewOrderJourney(c *gin.Context) {
 
 	if insert := db.QueryRow(`INSERT INTO ordervendorjourney(order_id, status, date)
 	VALUES($1, $2, $3) RETURNING id`,
-		orderVendorJourney.OrderId, orderVendorJourney.Status, time.Now().Unix());
-
-	insert != nil {
+		orderVendorJourney.OrderId, orderVendorJourney.Status, time.Now().Unix()); insert != nil {
 
 		var journeyId int64
 
 		insert.Scan(&journeyId)
 
 		orderCancel := OrderCancel{
-			JourneyId: journeyId,
-			OrderId: orderVendorJourney.OrderId,
+			JourneyId:  journeyId,
+			OrderId:    orderVendorJourney.OrderId,
 			CanceledBy: 1,
-			Message: orderVendorJourney.Message,
+			Message:    orderVendorJourney.Message,
 		}
 
 		handleCancelOrder(c, orderCancel)
@@ -2573,7 +2589,7 @@ func GetProviderOrderDetail(c *gin.Context) {
 
 	if err == nil && errOrderDetailItem == nil {
 
-		c.JSON(200, gin.H{ "order_info": orderItemList, "orders": orderDetail })
+		c.JSON(200, gin.H{"order_info": orderItemList, "orders": orderDetail})
 
 	} else {
 		checkErr(err, "select info failed")
@@ -2590,7 +2606,7 @@ func PostOrderCancel(c *gin.Context) {
 	errValid := dbmap.SelectOne(&checkValidOrder, `SELECT id FROM ordervendor WHERE id=$1`, orderCancel.OrderId)
 
 	if errValid != nil {
-		c.JSON(400, gin.H{"error" : "Invalid order"})
+		c.JSON(400, gin.H{"error": "Invalid order"})
 		return
 	}
 
@@ -2601,9 +2617,8 @@ func PostOrderCancel(c *gin.Context) {
 	if err != nil {
 		if insert := db.QueryRow(`INSERT INTO ordercancel(journey_id, order_id, canceled_by, message)
 		 	VALUES($1, $2, $3, $4)`, orderCancel.JourneyId, orderCancel.OrderId,
-			orderCancel.CanceledBy, orderCancel.Message);
-		insert != nil {
-			c.JSON(200, gin.H{"success":"Order is cancel"})
+			orderCancel.CanceledBy, orderCancel.Message); insert != nil {
+			c.JSON(200, gin.H{"success": "Order is cancel"})
 		}
 	} else {
 		c.JSON(400, gin.H{"error": "This order was canceled"})
@@ -2619,5 +2634,54 @@ func handleCancelOrder(c *gin.Context, orderCancel OrderCancel) {
 		db.QueryRow(`INSERT INTO ordercancel(journey_id, order_id, canceled_by, message)
 		 	VALUES($1, $2, $3, $4)`, orderCancel.JourneyId, orderCancel.OrderId,
 			orderCancel.CanceledBy, orderCancel.Message)
+	}
+}
+
+func PostPromo(c *gin.Context) {
+	var promo Promo
+	c.Bind(&promo)
+
+	if insert := db.QueryRow(`INSERT INTO promo(title, promo_image, start_date, end_date, position, active)
+		VALUES($1, $2, $3, $4, $5, $6) RETURNING id`, promo.Title, promo.PromoImage, promo.StartDate, promo.EndDate,
+		promo.Position, promo.Active); insert != nil {
+		var id int64
+
+		err := insert.Scan(&id)
+
+		promo.Id = id
+
+		if err == nil {
+			c.JSON(200, promo)
+		}
+	} else {
+		c.JSON(400, gin.H{"error": "insert failed"})
+	}
+}
+
+func GetUserPromo(c *gin.Context) {
+	var promo []Promo
+
+	_, err := dbmap.Select(&promo, `SELECT id, title, promo_image, start_date, end_date, position, active
+			FROM promo WHERE active=1`)
+
+	if err == nil {
+		c.JSON(200, gin.H{"data": promo})
+	} else {
+		c.JSON(400, gin.H{"error": "Failed"})
+	}
+}
+
+func PutProviderMaxDistance(c *gin.Context) {
+	providerId := getProviderIdFromToken(c)
+
+	var providerAccount ProviderAccount
+	c.Bind(&providerAccount)
+
+	if update := db.QueryRow(`UPDATE provideraccount SET max_distance=$1
+		WHERE provider_id=$2`, providerAccount.MaxDistance,
+		providerId); update != nil {
+		c.JSON(200, gin.H{"status": "update success"})
+	} else {
+		c.JSON(400, gin.H{"error": "update failed"})
 	}
 }
