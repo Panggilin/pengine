@@ -169,6 +169,8 @@ func main() {
 		v1.DELETE("/gallery/delete", TokenAuthProviderMiddleware(), DeleteImageGallery)
 		v1.DELETE("/price/delete/:service_id", TokenAuthProviderMiddleware(), DeleteService)
 		v1.POST("/provider/profile/add", TokenAuthProviderMiddleware(), PostProfileProvider)
+		v1.POST("/provider/upload/profile", TokenAuthProviderMiddleware(), PostImageProfileProvider)
+		v1.POST("/provider/upload/bg", TokenAuthProviderMiddleware(), PostImageBGProvider)
 		v1.PUT("/provider/edit/", TokenAuthProviderMiddleware(), UpdateProviderData)
 		v1.POST("/order/status", TokenAuthProviderMiddleware(), PostNewOrderJourney)
 		v1.PUT("/order/tracking", TokenAuthProviderMiddleware(), UpdateOrderTracking)
@@ -1639,6 +1641,63 @@ func GetProfileProvider(c *gin.Context) {
 		c.JSON(200, profileProvider)
 	} else {
 		checkErr(err, "Select failed")
+	}
+}
+
+func PostImageProfileProvider(c *gin.Context) {
+	providerId := getProviderIdFromToken(c)
+
+	var providerGallery ProviderGallery
+	c.Bind(&providerGallery)
+
+	var recProfile ProviderProfileImage
+	err := dbmap.SelectOne(&recProfile, `SELECT * FROM providerprofileimage
+				WHERE provider_id=$1`, providerId)
+
+	if err == nil {
+		if update := db.QueryRow(`UPDATE providerprofileimage
+					SET profile_pict=$1 WHERE provider_id=$2`,
+			providerGallery.Image,
+			providerId); update != nil {
+			c.JSON(200, gin.H{"status": "Update success"})
+		}
+	} else {
+		if insert := db.QueryRow(`INSERT INTO
+				providerprofileimage(provider_id, profile_pict)
+				VALUES($1, $2)`,
+			providerId,
+			providerGallery.Image); insert != nil {
+			c.JSON(200, gin.H{"status": "Success insert new profile pict"})
+		}
+	}
+
+}
+
+func PostImageBGProvider(c *gin.Context) {
+	providerId := getProviderIdFromToken(c)
+
+	var providerGallery ProviderGallery
+	c.Bind(&providerGallery)
+
+	var recProfile ProviderProfileImage
+	err := dbmap.SelectOne(&recProfile, `SELECT * FROM providerprofileimage
+				WHERE provider_id=$1`, providerId)
+
+	if err == nil {
+		if update := db.QueryRow(`UPDATE providerprofileimage
+					SET profile_bg=$1 WHERE provider_id=$2`,
+			providerGallery.Image,
+			providerId); update != nil {
+			c.JSON(200, gin.H{"status": "Update success"})
+		}
+	} else {
+		if insert := db.QueryRow(`INSERT INTO
+				providerprofileimage(provider_id, profile_bg)
+				VALUES($1, $2)`,
+			providerId,
+			providerGallery.Image); insert != nil {
+			c.JSON(200, gin.H{"status": "Success insert new profile pict"})
+		}
 	}
 }
 
