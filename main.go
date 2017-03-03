@@ -1665,12 +1665,21 @@ func PostImageProfileProvider(c *gin.Context) {
 			c.JSON(200, gin.H{"status": "Update success"})
 		}
 	} else {
-		if insert := db.QueryRow(`INSERT INTO
-				providerprofileimage(provider_id, profile_pict)
-				VALUES($1, $2)`,
-			providerId,
-			providerGallery.Image); insert != nil {
-			c.JSON(200, gin.H{"status": "Success insert new profile pict"})
+		if recProfile.ProfileBg != "" {
+			if update := db.QueryRow(`UPDATE providerprofileimage
+						SET profile_pict=$1 WHERE provider_id=$2`,
+				providerGallery.Image,
+				providerId); update != nil {
+				c.JSON(200, gin.H{"status": "Update success"})
+			}
+		} else {
+			if insert := db.QueryRow(`INSERT INTO
+					providerprofileimage(provider_id, profile_pict)
+					VALUES($1, $2)`,
+				providerId,
+				providerGallery.Image); insert != nil {
+				c.JSON(200, gin.H{"status": "Success insert new profile pict"})
+			}
 		}
 	}
 
@@ -1696,12 +1705,21 @@ func PostImageBGProvider(c *gin.Context) {
 			c.JSON(200, gin.H{"status": "Update success"})
 		}
 	} else {
-		if insert := db.QueryRow(`INSERT INTO
-				providerprofileimage(provider_id, profile_bg)
-				VALUES($1, $2)`,
-			providerId,
-			providerGallery.Image); insert != nil {
-			c.JSON(200, gin.H{"status": "Success insert new profile pict"})
+		if recProfile.ProfilePict != "" {
+			if update := db.QueryRow(`UPDATE providerprofileimage
+						SET profile_bg=$1 WHERE provider_id=$2`,
+				providerGallery.Image,
+				providerId); update != nil {
+				c.JSON(200, gin.H{"status": "Update success"})
+			}
+		} else {
+			if insert := db.QueryRow(`INSERT INTO
+					providerprofileimage(provider_id, profile_bg)
+					VALUES($1, $2)`,
+				providerId,
+				providerGallery.Image); insert != nil {
+				c.JSON(200, gin.H{"status": "Success insert new profile pict"})
+			}
 		}
 	}
 }
