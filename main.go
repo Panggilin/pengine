@@ -181,6 +181,7 @@ func main() {
 		v1.PUT("/provider/devicetoken/update", TokenAuthProviderMiddleware(), PutProviderDeviceTokenUpdate)
 		v1.POST("/provider/order/cancel", TokenAuthProviderMiddleware(), PostOrderCancel)
 		v1.PUT("/provider/maxdistance", TokenAuthProviderMiddleware(), PutProviderMaxDistance)
+		v1.GET("/provider/me/image", TokenAuthProviderMiddleware(), GetProviderImage)
 	}
 
 	r.Run(GetPort())
@@ -1654,7 +1655,9 @@ func PostImageProfileProvider(c *gin.Context) {
 	err := dbmap.SelectOne(&recProfile, `SELECT * FROM providerprofileimage
 				WHERE provider_id=$1`, providerId)
 
-	if err == nil {
+	log.Println(err)
+
+	if recProfile.ProfilePict != "" {
 		if update := db.QueryRow(`UPDATE providerprofileimage
 					SET profile_pict=$1 WHERE provider_id=$2`,
 			providerGallery.Image,
@@ -1683,7 +1686,9 @@ func PostImageBGProvider(c *gin.Context) {
 	err := dbmap.SelectOne(&recProfile, `SELECT * FROM providerprofileimage
 				WHERE provider_id=$1`, providerId)
 
-	if err == nil {
+	log.Println(err)
+
+	if recProfile.ProfileBg != "" {
 		if update := db.QueryRow(`UPDATE providerprofileimage
 					SET profile_bg=$1 WHERE provider_id=$2`,
 			providerGallery.Image,
@@ -2742,5 +2747,44 @@ func PutProviderMaxDistance(c *gin.Context) {
 		c.JSON(200, gin.H{"status": "update success"})
 	} else {
 		c.JSON(400, gin.H{"error": "update failed"})
+	}
+}
+
+type ProviderImage struct {
+	ImageProfile   string            `json:"image_profile"`
+	ImageBG        string            `json:"image_bg"`
+	ImageGalleries []ProviderGallery `json:"image_galleries"`
+}
+
+func GetProviderImage(c *gin.Context) {
+	providerId := getProviderIdFromToken(c)
+
+	var providerProfileImage ProviderProfileImage
+	err := dbmap.SelectOne(&providerProfileImage,
+		`SELECT
+		CASE WHEN (profile_pict IS NULL OR profile_pict = '') THEN '' ELSE profile_pict END,
+		CASE WHEN (profile_bg IS NULL OR profile_bg = '') THEN '' ELSE profile_bg END FROM providerprofileimage WHERE provider_id=$1`,
+		providerId)
+
+	if err == nil {
+		var providerGalleries []ProviderGallery
+		_, errGalleries := dbmap.Select(&providerGalleries,
+			`SELECT
+			CASE WHEN (image IS NULL OR image = '') THEN '' ELSE image END
+			FROM providergallery WHERE provider_id=$1`, providerId)
+
+		if errGalleries == nil {
+			providerImages := &ProviderImage{
+				ImageProfile:   providerProfileImage.ProfilePict,
+				ImageBG:        providerProfileImage.ProfileBg,
+				ImageGalleries: providerGalleries,
+			}
+
+			c.JSON(200, providerImages)
+		} else {
+			checkErr(errGalleries, "Select images failed")
+		}
+	} else {
+		checkErr(err, "Select profile failed")
 	}
 }
