@@ -2790,10 +2790,11 @@ func GetProviderImage(c *gin.Context) {
 	providerId := getProviderIdFromToken(c)
 
 	var providerProfileImage ProviderProfileImage
-	err := dbmap.SelectOne(&providerProfileImage,
+	_, err := dbmap.Select(&providerProfileImage,
 		`SELECT
 		CASE WHEN (profile_pict IS NULL OR profile_pict = '') THEN '' ELSE profile_pict END,
-		CASE WHEN (profile_bg IS NULL OR profile_bg = '') THEN '' ELSE profile_bg END FROM providerprofileimage WHERE provider_id=$1`,
+		CASE WHEN (profile_bg IS NULL OR profile_bg = '') THEN '' ELSE profile_bg END
+		FROM providerprofileimage WHERE provider_id=$1 LIMIT 1`,
 		providerId)
 
 	if err == nil {
