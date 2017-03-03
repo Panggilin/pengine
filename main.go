@@ -1654,7 +1654,8 @@ func PostImageProfileProvider(c *gin.Context) {
 	var recProfile ProviderProfileImage
 	err := dbmap.SelectOne(&recProfile, `SELECT
 		CASE WHEN (profile_pict IS NULL OR profile_pict = '') THEN '' ELSE profile_pict END,
-			CASE WHEN (profile_bg IS NULL OR profile_bg = '') THEN '' ELSE profile_bg FROM providerprofileimage
+			CASE WHEN (profile_bg IS NULL OR profile_bg = '') THEN '' ELSE profile_bg END
+			FROM providerprofileimage
 				WHERE provider_id=$1`, providerId)
 
 	log.Println(err)
@@ -1699,7 +1700,8 @@ func PostImageBGProvider(c *gin.Context) {
 	var recProfile ProviderProfileImage
 	err := dbmap.SelectOne(&recProfile, `SELECT
 		CASE WHEN (profile_pict IS NULL OR profile_pict = '') THEN '' ELSE profile_pict END,
-			CASE WHEN (profile_bg IS NULL OR profile_bg = '') THEN '' ELSE profile_bg FROM providerprofileimage
+			CASE WHEN (profile_bg IS NULL OR profile_bg = '') THEN '' ELSE profile_bg END
+			FROM providerprofileimage
 				WHERE provider_id=$1`, providerId)
 
 	log.Println(err)
