@@ -2790,33 +2790,33 @@ func GetProviderImage(c *gin.Context) {
 	providerId := getProviderIdFromToken(c)
 
 	var providerProfileImage ProviderProfileImage
-	_, err := dbmap.Select(&providerProfileImage,
+	err := dbmap.SelectOne(&providerProfileImage,
 		`SELECT
 		CASE WHEN (profile_pict IS NULL OR profile_pict = '') THEN '' ELSE profile_pict END,
 		CASE WHEN (profile_bg IS NULL OR profile_bg = '') THEN '' ELSE profile_bg END
-		FROM providerprofileimage WHERE provider_id=$1 LIMIT 1`,
+		FROM providerprofileimage WHERE provider_id=$1`,
 		providerId)
 
-	if err == nil {
-		var providerGalleries []ProviderGallery
-		_, errGalleries := dbmap.Select(&providerGalleries,
-			`SELECT
-			id, provider_id,
-			CASE WHEN (image IS NULL OR image = '') THEN '' ELSE image END
-			FROM providergallery WHERE provider_id=$1`, providerId)
+	if err != nil {
+		log.Println(err)
+	}
 
-		if errGalleries == nil {
-			providerImages := &ProviderImage{
-				ImageProfile:   providerProfileImage.ProfilePict,
-				ImageBG:        providerProfileImage.ProfileBg,
-				ImageGalleries: providerGalleries,
-			}
+	var providerGalleries []ProviderGallery
+	_, errGalleries := dbmap.Select(&providerGalleries,
+		`SELECT
+		id, provider_id,
+		CASE WHEN (image IS NULL OR image = '') THEN '' ELSE image END
+		FROM providergallery WHERE provider_id=$1`, providerId)
 
-			c.JSON(200, providerImages)
-		} else {
-			checkErr(errGalleries, "Select images failed")
+	if errGalleries == nil {
+		providerImages := &ProviderImage{
+			ImageProfile:   providerProfileImage.ProfilePict,
+			ImageBG:        providerProfileImage.ProfileBg,
+			ImageGalleries: providerGalleries,
 		}
+
+		c.JSON(200, providerImages)
 	} else {
-		checkErr(err, "Select profile failed")
+		log.Println(errGalleries)
 	}
 }
