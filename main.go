@@ -2800,6 +2800,7 @@ func GetProviderImage(c *gin.Context) {
 		var providerGalleries []ProviderGallery
 		_, errGalleries := dbmap.Select(&providerGalleries,
 			`SELECT
+			id, provider_id,
 			CASE WHEN (image IS NULL OR image = '') THEN '' ELSE image END
 			FROM providergallery WHERE provider_id=$1`, providerId)
 
