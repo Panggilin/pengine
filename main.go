@@ -904,6 +904,7 @@ func GetProvider(c *gin.Context) {
 		providerId)
 
 	if errGallery != nil {
+		log.Println("Fail select gallery")
 	}
 
 	// get price list
@@ -913,6 +914,7 @@ func GetProvider(c *gin.Context) {
 		providerId)
 
 	if errPriceList != nil {
+		log.Println("Fail select price")
 	}
 
 	// get provider location
@@ -922,6 +924,7 @@ func GetProvider(c *gin.Context) {
 		WHERE pl.provider_id=$1`, providerId)
 
 	if errLocation != nil {
+		log.Println("Fail select location")
 	}
 
 	// get count job que
@@ -940,6 +943,7 @@ func GetProvider(c *gin.Context) {
 		ORDER BY ouj.status DESC`, providerId)
 
 	if errJobQue != nil {
+		log.Println("Fail select job que")
 	}
 
 	// get count rate and review
@@ -948,6 +952,7 @@ func GetProvider(c *gin.Context) {
 		WHERE provider_id=$1`, providerId)
 
 	if errRating != nil {
+		log.Println("Fail select rating")
 	}
 
 	c.JSON(200, gin.H{
