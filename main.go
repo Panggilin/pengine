@@ -1364,7 +1364,7 @@ func PostAddProviderPriceList(c *gin.Context) {
 
 	if insert := db.QueryRow(`INSERT INTO providerpricelist(provider_id,
 			service_name, service_price, negotiable, support_per_item)
-		VALUES($1, $2, $3, $4)`,
+		VALUES($1, $2, $3, $4, $5)`,
 		providerId,
 		providerPriceItem.ServiceName,
 		providerPriceItem.ServicePrice,
