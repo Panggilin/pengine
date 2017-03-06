@@ -874,12 +874,6 @@ func GetProvider(c *gin.Context) {
 		checkErr(errBasicInfo, "Select basic info failed")
 	}
 
-	if providerBasicInfo.JasaId == 1 {
-		providerId = strconv.Itoa(36)
-	} else {
-		providerId = strconv.Itoa(23)
-	}
-
 	// Get profile pict
 	var profileProvider ProviderProfileImage
 	errProfilePict := dbmap.SelectOne(&profileProvider,
