@@ -418,6 +418,7 @@ type ProviderPriceList struct {
 	ServicePrice   int64  `db:"service_price" json:"service_price"`
 	Negotiable     int64  `db:"negotiable" json:"negotiable"`
 	SupportPerItem int64  `db:"support_per_item" json:"support_per_item"`
+	MinOrderQty    int64  `db:"min_order_qty" json:"min_order_qty"`
 }
 
 /**
@@ -1362,13 +1363,14 @@ func PostAddProviderPriceList(c *gin.Context) {
 	c.Bind(&providerPriceItem)
 
 	if insert := db.QueryRow(`INSERT INTO providerpricelist(provider_id,
-			service_name, service_price, negotiable, support_per_item)
-		VALUES($1, $2, $3, $4, $5)`,
+			service_name, service_price, negotiable, support_per_item, min_order_qty)
+		VALUES($1, $2, $3, $4, $5, $6)`,
 		providerId,
 		providerPriceItem.ServiceName,
 		providerPriceItem.ServicePrice,
 		providerPriceItem.Negotiable,
-		providerPriceItem.SupportPerItem); insert != nil {
+		providerPriceItem.SupportPerItem,
+		providerPriceItem.MinOrderQty); insert != nil {
 		c.JSON(200, gin.H{"status": "Success add new price"})
 	}
 
@@ -1411,9 +1413,11 @@ func UpdateProviderPrice(c *gin.Context) {
 	c.Bind(&providerPrice)
 
 	if update := db.QueryRow(`UPDATE providerpricelist
-			SET service_name=$1, service_price=$2, negotiable=$3, support_per_item=$4
-			WHERE id=$5 AND provider_id=$6`, providerPrice.ServiceName, providerPrice.ServicePrice,
-		providerPrice.Negotiable, providerPrice.SupportPerItem,
+			SET service_name=$1, service_price=$2, negotiable=$3,
+			support_per_item=$4, min_order_qty=$5
+			WHERE id=$6 AND provider_id=$7`, providerPrice.ServiceName,
+		providerPrice.ServicePrice, providerPrice.Negotiable,
+		providerPrice.SupportPerItem, providerPrice.MinOrderQty,
 		providerPrice.Id, providerId); update != nil {
 		c.JSON(200, gin.H{"status": "Update success"})
 	}
