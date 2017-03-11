@@ -832,6 +832,7 @@ type ProviderDetailJourney struct {
 	ProviderAddress string         `db:"provider_address" json:"provider_address"`
 	ProviderBgImage sql.NullString `db:"provider_bg_images" json:"provider_bg_images"`
 	ProviderType    int64          `db:"provider_type" json:"provider_type"`
+	PhoneNumber     string         `db:"phone_number" json:"phone_number"`
 }
 
 type PostSearchType struct {
@@ -1983,7 +1984,8 @@ func GetOrderDetail(c *gin.Context) {
 			nama as provider_name,
 			alamat as provider_address,
 			pd.jasa_id as provider_type,
-			profile_bg as provider_bg_images
+			profile_bg as provider_bg_images,
+			pd.phone_number
 		FROM providerdata pd
 			JOIN ordervendor ov ON ov.provider_id = pd.id
 			LEFT JOIN providerprofileimage ppi ON ppi.provider_id = pd.id
@@ -2015,6 +2017,7 @@ func GetOrderDetail(c *gin.Context) {
 			"provider_address":   providerData.ProviderAddress,
 			"provider_bg_images": providerData.ProviderBgImage.String,
 			"provider_type":      providerData.ProviderType,
+			"phone_number":       providerData.PhoneNumber,
 		})
 	} else {
 		c.JSON(400, gin.H{"error": "Failed get order detail"})
