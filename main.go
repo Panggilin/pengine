@@ -171,7 +171,7 @@ func main() {
 		v1.POST("/provider/profile/add", TokenAuthProviderMiddleware(), PostProfileProvider)
 		v1.POST("/provider/upload/profile", TokenAuthProviderMiddleware(), PostImageProfileProvider)
 		v1.POST("/provider/upload/bg", TokenAuthProviderMiddleware(), PostImageBGProvider)
-		v1.PUT("/provider/edit/", TokenAuthProviderMiddleware(), UpdateProviderData)
+		v1.PUT("/provider/edit", TokenAuthProviderMiddleware(), UpdateProviderData)
 		v1.POST("/order/status", TokenAuthProviderMiddleware(), PostNewOrderJourney)
 		v1.PUT("/order/tracking", TokenAuthProviderMiddleware(), UpdateOrderTracking)
 		v1.GET("/rating/me", TokenAuthProviderMiddleware(), GetProviderRatingProvider)
