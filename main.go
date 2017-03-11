@@ -182,6 +182,7 @@ func main() {
 		v1.POST("/provider/order/cancel", TokenAuthProviderMiddleware(), PostOrderCancel)
 		v1.PUT("/provider/maxdistance", TokenAuthProviderMiddleware(), PutProviderMaxDistance)
 		v1.GET("/provider/me/image", TokenAuthProviderMiddleware(), GetProviderImage)
+		v1.PUT("/provider/info", TokenAuthProviderMiddleware(), UpdateProviderInfo)
 	}
 
 	r.Run(GetPort())
@@ -305,19 +306,20 @@ JoinDate
 ModifiedDate
 */
 type ProviderData struct {
-	Id           int64  `db:"id" json:"id"`
-	Nama         string `db:"nama" json:"nama"`
-	Email        string `db:"email" json:"email"`
-	PhoneNumber  string `db:"phone_number" json:"phone_number"`
-	JasaId       int64  `db:"jasa_id" json:"jasa_id"`
-	Alamat       string `db:"alamat" json:"alamat"`
-	Provinsi     string `db:"provinsi" json:"provinsi"`
-	Kabupaten    string `db:"kabupaten" json:"kabupaten"`
-	Kelurahan    string `db:"kelurahan" json:"kelurahan"`
-	KodePos      string `db:"kode_pos" json:"kode_pos"`
-	Dokumen      string `db:"dokumen" json:"dokumen"`
-	JoinDate     int64  `db:"join_date" json:"join_date"`
-	ModifiedDate int64  `db:"modified_date" json:"modified_date"`
+	Id             int64  `db:"id" json:"id"`
+	Nama           string `db:"nama" json:"nama"`
+	Email          string `db:"email" json:"email"`
+	PhoneNumber    string `db:"phone_number" json:"phone_number"`
+	JasaId         int64  `db:"jasa_id" json:"jasa_id"`
+	Alamat         string `db:"alamat" json:"alamat"`
+	Provinsi       string `db:"provinsi" json:"provinsi"`
+	Kabupaten      string `db:"kabupaten" json:"kabupaten"`
+	Kelurahan      string `db:"kelurahan" json:"kelurahan"`
+	KodePos        string `db:"kode_pos" json:"kode_pos"`
+	Dokumen        string `db:"dokumen" json:"dokumen"`
+	JoinDate       int64  `db:"join_date" json:"join_date"`
+	ModifiedDate   int64  `db:"modified_date" json:"modified_date"`
+	AdditionalInfo string `db:"additional_info" json:"additional_info"`
 }
 
 /**
@@ -471,11 +473,12 @@ JasaId
 JenisJasa
 */
 type ProviderBasicInfo struct {
-	Id        int64  `db:"id" json:"id"`
-	Nama      string `db:"nama" json:"nama"`
-	Alamat    string `db:"alamat" json:"alamat"`
-	JasaId    int64  `db:"jasa_id" json:"jasa_id"`
-	JenisJasa string `db:"jenis_jasa" json:"jenis_jasa"`
+	Id             int64  `db:"id" json:"id"`
+	Nama           string `db:"nama" json:"nama"`
+	Alamat         string `db:"alamat" json:"alamat"`
+	JasaId         int64  `db:"jasa_id" json:"jasa_id"`
+	JenisJasa      string `db:"jenis_jasa" json:"jenis_jasa"`
+	AdditionalInfo string `db:"additional_info" json:"additional_info"`
 }
 
 /**
@@ -866,7 +869,8 @@ func GetProvider(c *gin.Context) {
 	// Get basic info
 	var providerBasicInfo ProviderBasicInfo
 	errBasicInfo := dbmap.SelectOne(&providerBasicInfo,
-		`SELECT pd.id as id, pd.nama, pd.alamat, pd.jasa_id, kj.jenis as jenis_jasa
+		`SELECT pd.id as id, pd.nama, pd.alamat, pd.jasa_id, kj.jenis as jenis_jasa,
+		CASE WHEN (pd.additional_info IS NULL OR pd.additional_info = '') THEN '' ELSE pd.additional_info END
 		FROM providerdata pd
 		JOIN kategorijasa kj ON kj.id = pd.jasa_id
 		WHERE pd.id=$1`, providerId)
@@ -951,18 +955,19 @@ func GetProvider(c *gin.Context) {
 	}
 
 	c.JSON(200, gin.H{
-		"id":           providerBasicInfo.Id,
-		"nama":         providerBasicInfo.Nama,
-		"alamat":       providerBasicInfo.Alamat,
-		"jasa_id":      providerBasicInfo.JasaId,
-		"jenis_jasa":   providerBasicInfo.JenisJasa,
-		"location":     providerLocation,
-		"profile_pict": profilePictUrl,
-		"profile_bg":   profileBgUrl,
-		"gallery":      providerGallery,
-		"price":        providerPriceList,
-		"job_que":      len(jobQueProvider),
-		"rate_review":  len(providerRating),
+		"id":              providerBasicInfo.Id,
+		"nama":            providerBasicInfo.Nama,
+		"alamat":          providerBasicInfo.Alamat,
+		"jasa_id":         providerBasicInfo.JasaId,
+		"jenis_jasa":      providerBasicInfo.JenisJasa,
+		"additional_info": providerBasicInfo.AdditionalInfo,
+		"location":        providerLocation,
+		"profile_pict":    profilePictUrl,
+		"profile_bg":      profileBgUrl,
+		"gallery":         providerGallery,
+		"price":           providerPriceList,
+		"job_que":         len(jobQueProvider),
+		"rate_review":     len(providerRating),
 	})
 
 }
@@ -2824,5 +2829,18 @@ func GetProviderImage(c *gin.Context) {
 		c.JSON(200, providerImages)
 	} else {
 		log.Println(errGalleries)
+	}
+}
+
+func UpdateProviderInfo(c *gin.Context) {
+	providerId := getProviderIdFromToken(c)
+
+	var providerBasicInfo ProviderBasicInfo
+	c.Bind(&providerBasicInfo)
+
+	if update := db.QueryRow(
+		`UPDATE providerdata SET additional_info=$1 WHERE id=$2`,
+		providerBasicInfo.AdditionalInfo, providerId); update != nil {
+		c.JSON(201, gin.H{"success": "Update additonal information"})
 	}
 }
