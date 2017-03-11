@@ -183,6 +183,7 @@ func main() {
 		v1.PUT("/provider/maxdistance", TokenAuthProviderMiddleware(), PutProviderMaxDistance)
 		v1.GET("/provider/me/image", TokenAuthProviderMiddleware(), GetProviderImage)
 		v1.PUT("/provider/info", TokenAuthProviderMiddleware(), UpdateProviderInfo)
+		v1.GET("/provider/me", TokenAuthProviderMiddleware(), GetProviderInfo)
 	}
 
 	r.Run(GetPort())
@@ -479,6 +480,8 @@ type ProviderBasicInfo struct {
 	JasaId         int64  `db:"jasa_id" json:"jasa_id"`
 	JenisJasa      string `db:"jenis_jasa" json:"jenis_jasa"`
 	AdditionalInfo string `db:"additional_info" json:"additional_info"`
+	Email          string `db:"email" json:"email"`
+	PhoneNumber    string `db:"phone_number" json:"phone_number"`
 }
 
 /**
@@ -2843,4 +2846,63 @@ func UpdateProviderInfo(c *gin.Context) {
 		providerBasicInfo.AdditionalInfo, providerId); update != nil {
 		c.JSON(201, gin.H{"success": "Update additonal information"})
 	}
+}
+
+func GetProviderInfo(c *gin.Context) {
+	providerId := getProviderIdFromToken(c)
+
+	// Get basic info
+	var providerBasicInfo ProviderBasicInfo
+	errBasicInfo := dbmap.SelectOne(&providerBasicInfo,
+		`SELECT pd.id as id, pd.nama, pd.alamat, pd.jasa_id, kj.jenis as jenis_jasa,
+		CASE WHEN (pd.additional_info IS NULL OR pd.additional_info = '') THEN '' ELSE pd.additional_info END,
+		pd.email, pd.phone_number
+		FROM providerdata pd
+		JOIN kategorijasa kj ON kj.id = pd.jasa_id
+		WHERE pd.id=$1`, providerId)
+
+	if errBasicInfo != nil {
+		checkErr(errBasicInfo, "Select basic info failed")
+	}
+
+	// Get profile pict
+	var profileProvider ProviderProfileImage
+	errProfilePict := dbmap.SelectOne(&profileProvider,
+		`SELECT * FROM providerprofileimage WHERE provider_id=$1`,
+		providerId)
+
+	var profilePictUrl string
+	var profileBgUrl string
+
+	if errProfilePict != nil {
+		profilePictUrl = ""
+		profileBgUrl = ""
+	} else {
+		profilePictUrl = profileProvider.ProfilePict
+		profileBgUrl = profileProvider.ProfileBg
+	}
+
+	// get images gallery
+	var providerGallery []ProviderGallery
+	_, errGallery := dbmap.Select(&providerGallery,
+		`SELECT * FROM providergallery WHERE provider_id=$1`,
+		providerId)
+
+	if errGallery != nil {
+		log.Println("Fail select gallery")
+	}
+
+	c.JSON(200, gin.H{
+		"id":              providerBasicInfo.Id,
+		"nama":            providerBasicInfo.Nama,
+		"alamat":          providerBasicInfo.Alamat,
+		"jasa_id":         providerBasicInfo.JasaId,
+		"jenis_jasa":      providerBasicInfo.JenisJasa,
+		"additional_info": providerBasicInfo.AdditionalInfo,
+		"email":           providerBasicInfo.Email,
+		"phone_number":    providerBasicInfo.PhoneNumber,
+		"profile_pict":    profilePictUrl,
+		"profile_bg":      profileBgUrl,
+		"gallery":         providerGallery,
+	})
 }
