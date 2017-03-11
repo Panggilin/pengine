@@ -801,6 +801,7 @@ type OrderItemListProvider struct {
 	IsCanceled       bool    `db:"is_canceled" json:"is_canceled"`
 	CanceledBy       int8    `db:"canceled_by" json:"canceled_by"`
 	Message          string  `db:"message" json:"message"`
+	PhoneNumber      string  `db:"phone_number" json:"phone_number"`
 }
 
 type Query struct {
@@ -2585,12 +2586,14 @@ func GetProviderOrder(c *gin.Context) {
 	var orderItemList []OrderItemListProvider
 
 	if query.LowerThan > 0 {
-		_, err := dbmap.Select(&orderItemList, `SELECT ov.id, ov.destination, ov.destination_lat as latitude, ov.destination_long as longitude, order_date,
+		_, err := dbmap.Select(&orderItemList,
+			`SELECT ov.id, ov.destination, ov.destination_lat as latitude, ov.destination_long as longitude, order_date,
 		up.user_id as customer_id, up.full_name as customer_name, up.address as customer_domisili,
 		kj.id as jasa_id, kj.jenis as jasa_name,
 		otp.total_price as price,
 		ouj.status,
-		CASE WHEN oouj.complete_date <> 0 THEN oouj.complete_date ELSE 0 END as complete_date
+		CASE WHEN oouj.complete_date <> 0 THEN oouj.complete_date ELSE 0 END as complete_date,
+		up.phone_number
 		FROM ordervendor ov
 			JOIN userprofile up ON up.user_id = ov.user_id
 			JOIN providerdata pd ON pd.id = ov.provider_id
@@ -2614,7 +2617,8 @@ func GetProviderOrder(c *gin.Context) {
 		kj.id as jasa_id, kj.jenis as jasa_name,
 		otp.total_price as price,
 		ouj.status,
-		CASE WHEN oouj.complete_date <> 0 THEN oouj.complete_date ELSE 0 END as complete_date
+		CASE WHEN oouj.complete_date <> 0 THEN oouj.complete_date ELSE 0 END as complete_date,
+		up.phone_number
 		FROM ordervendor ov
 			JOIN userprofile up ON up.user_id = ov.user_id
 			JOIN providerdata pd ON pd.id = ov.provider_id
@@ -2642,7 +2646,8 @@ func GetProviderOrder(c *gin.Context) {
 		kj.id as jasa_id, kj.jenis as jasa_name,
 		otp.total_price as price,
 		ouj.status,
-		CASE WHEN oouj.complete_date <> 0 THEN oouj.complete_date ELSE 0 END as complete_date
+		CASE WHEN oouj.complete_date <> 0 THEN oouj.complete_date ELSE 0 END as complete_date,
+		up.phone_number
 		FROM ordervendor ov
 			JOIN userprofile up ON up.user_id = ov.user_id
 			JOIN providerdata pd ON pd.id = ov.provider_id
@@ -2679,7 +2684,8 @@ func GetProviderOrderDetail(c *gin.Context) {
 		CASE WHEN oouj.complete_date <> 0 THEN oouj.complete_date ELSE 0 END as complete_date,
 		CASE WHEN ouj.status = 7 THEN true ELSE false END AS is_canceled,
 		CASE WHEN ouj.status = 7 THEN oc.canceled_by ELSE 0 END AS canceled_by,
-		CASE WHEN ouj.status = 7 THEN oc.message ELSE '' END AS message
+		CASE WHEN ouj.status = 7 THEN oc.message ELSE '' END AS message,
+		up.phone_number
 		FROM ordervendor ov
 			JOIN userprofile up ON up.user_id = ov.user_id
 			JOIN providerdata pd ON pd.id = ov.provider_id
