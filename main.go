@@ -1274,7 +1274,25 @@ func PostCreateProvider(c *gin.Context) {
 }
 
 func UpdateProviderData(c *gin.Context) {
-	// Update provider data
+	providerId := getProviderIdFromToken(c)
+
+	var providerData ProviderData
+	c.Bind(&providerData)
+
+	var providerAccount ProviderAccount
+	err := dbmap.SelectOne(&providerAccount,
+		`SELECT provider_id FROM provideraccount WHERE provider_id=$1`,
+		providerId)
+
+	if err == nil {
+		if update := db.QueryRow(`UPDATE providerdata SET nama=$1
+				WHERE id=$2`, providerData.Nama, providerId); update != nil {
+			c.JSON(200, gin.H{"status": "update success"})
+		} else {
+			c.JSON(400, gin.H{"error": "update failed"})
+		}
+	}
+
 }
 
 func InActiveProvider(c *gin.Context) {
