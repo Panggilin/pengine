@@ -1003,7 +1003,7 @@ func GetNearProviderForMap(c *gin.Context) {
 		CASE WHEN min_price <> 0 THEN min_price ELSE 0 END as min_price,
 		CASE WHEN max_price <> 0 THEN max_price ELSE 0 END as max_price,
 		CASE WHEN rating <> 0 THEN rating ELSE 0 END as rating
-		FROM providerlocation pl
+		FROM (select * from providerlocation group by provider_id order by id desc limit 1) as PL
 			JOIN providerdata pd on pd.id = pl.provider_id
 			JOIN kategorijasa kj on kj.id = pd.jasa_id
 			LEFT JOIN (
@@ -1356,7 +1356,7 @@ func PostMyLocationProvider(c *gin.Context) {
 		FROM providerlocation WHERE provider_id=$1`,
 		providerLocation.ProviderId)
 
-	if err == nil {
+	if err != nil {
 		// Already exists
 		if update := db.QueryRow(`UPDATE providerlocation SET latitude=$1,
 			longitude=$2 WHERE provider_id=$3`,
