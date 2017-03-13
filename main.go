@@ -484,6 +484,7 @@ type ProviderBasicInfo struct {
 	Email          string  `db:"email" json:"email"`
 	PhoneNumber    string  `db:"phone_number" json:"phone_number"`
 	Rating         float32 `db:"rating" json:"rating"`
+	Status         int8    `db:"status" json:"status"`
 }
 
 /**
@@ -880,9 +881,11 @@ func GetProvider(c *gin.Context) {
 	errBasicInfo := dbmap.SelectOne(&providerBasicInfo,
 		`SELECT pd.id as id, pd.nama, pd.alamat, pd.jasa_id, kj.jenis as jenis_jasa,
 		CASE WHEN (pd.additional_info IS NULL OR pd.additional_info = '') THEN '' ELSE pd.additional_info END,
-		CASE WHEN (pr.rating <> 0) THEN pr.rating ELSE 0 END as rating
+		CASE WHEN (pr.rating <> 0) THEN pr.rating ELSE 0 END as rating,
+		pa.status
 		FROM providerdata pd
 		JOIN kategorijasa kj ON kj.id = pd.jasa_id
+		JOIN provideraccount pa ON pa.provider_id = pd.id
 		LEFT JOIN (
 			SELECT provider_id, ((sum_rating + 0.0)/count)::float as rating
 			FROM (
@@ -984,6 +987,7 @@ func GetProvider(c *gin.Context) {
 		"job_que":         len(jobQueProvider),
 		"rate_review":     len(providerRating),
 		"rating":          providerBasicInfo.Rating,
+		"status":          providerBasicInfo.Status,
 	})
 
 }
