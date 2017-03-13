@@ -882,7 +882,8 @@ func GetProvider(c *gin.Context) {
 		`SELECT pd.id as id, pd.nama, pd.alamat, pd.jasa_id, kj.jenis as jenis_jasa,
 		CASE WHEN (pd.additional_info IS NULL OR pd.additional_info = '') THEN '' ELSE pd.additional_info END,
 		CASE WHEN (pr.rating <> 0) THEN pr.rating ELSE 0 END as rating,
-		pa.status
+		pa.status,
+		pd.email
 		FROM providerdata pd
 		JOIN kategorijasa kj ON kj.id = pd.jasa_id
 		JOIN provideraccount pa ON pa.provider_id = pd.id
