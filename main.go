@@ -474,14 +474,15 @@ JasaId
 JenisJasa
 */
 type ProviderBasicInfo struct {
-	Id             int64  `db:"id" json:"id"`
-	Nama           string `db:"nama" json:"nama"`
-	Alamat         string `db:"alamat" json:"alamat"`
-	JasaId         int64  `db:"jasa_id" json:"jasa_id"`
-	JenisJasa      string `db:"jenis_jasa" json:"jenis_jasa"`
-	AdditionalInfo string `db:"additional_info" json:"additional_info"`
-	Email          string `db:"email" json:"email"`
-	PhoneNumber    string `db:"phone_number" json:"phone_number"`
+	Id             int64   `db:"id" json:"id"`
+	Nama           string  `db:"nama" json:"nama"`
+	Alamat         string  `db:"alamat" json:"alamat"`
+	JasaId         int64   `db:"jasa_id" json:"jasa_id"`
+	JenisJasa      string  `db:"jenis_jasa" json:"jenis_jasa"`
+	AdditionalInfo string  `db:"additional_info" json:"additional_info"`
+	Email          string  `db:"email" json:"email"`
+	PhoneNumber    string  `db:"phone_number" json:"phone_number"`
+	Rating         float32 `db:"rating" json:"rating"`
 }
 
 /**
@@ -877,9 +878,16 @@ func GetProvider(c *gin.Context) {
 	var providerBasicInfo ProviderBasicInfo
 	errBasicInfo := dbmap.SelectOne(&providerBasicInfo,
 		`SELECT pd.id as id, pd.nama, pd.alamat, pd.jasa_id, kj.jenis as jenis_jasa,
-		CASE WHEN (pd.additional_info IS NULL OR pd.additional_info = '') THEN '' ELSE pd.additional_info END
+		CASE WHEN (pd.additional_info IS NULL OR pd.additional_info = '') THEN '' ELSE pd.additional_info END,
+		CASE WHEN (pr.rating <> 0) THEN pr.rating ELSE 0 END as rating
 		FROM providerdata pd
 		JOIN kategorijasa kj ON kj.id = pd.jasa_id
+		LEFT JOIN (
+			SELECT provider_id, ((sum_rating + 0.0)/count)::float as rating
+			FROM (
+				SELECT provider_id, count(*) as count, sum(user_rating) sum_rating
+				FROM providerrating group by provider_id) rating_counter) pr
+		ON pr.provider_id = pd.id
 		WHERE pd.id=$1`, providerId)
 
 	if errBasicInfo != nil {
@@ -960,7 +968,6 @@ func GetProvider(c *gin.Context) {
 	if errRating != nil {
 		log.Println("Fail select rating")
 	}
-
 	c.JSON(200, gin.H{
 		"id":              providerBasicInfo.Id,
 		"nama":            providerBasicInfo.Nama,
@@ -975,6 +982,7 @@ func GetProvider(c *gin.Context) {
 		"price":           providerPriceList,
 		"job_que":         len(jobQueProvider),
 		"rate_review":     len(providerRating),
+		"rating":          providerBasicInfo.Rating,
 	})
 
 }
