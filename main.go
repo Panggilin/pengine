@@ -134,8 +134,6 @@ func main() {
 		v1.POST("/user/auth/social", PostAuthSocial)
 		v1.POST("/provider/create", PostCreateProvider)
 		v1.POST("/provider/signin", PostSignInProvider)
-		v1.PUT("/provider/inactive", InActiveProvider)
-		v1.PUT("/provider/active", ActiveProvider)
 		v1.POST("/jasa/create", PostCreateNewJasa)
 		v1.POST("/promo/create", PostPromo)
 
@@ -184,6 +182,9 @@ func main() {
 		v1.GET("/provider/me/image", TokenAuthProviderMiddleware(), GetProviderImage)
 		v1.PUT("/provider/info", TokenAuthProviderMiddleware(), UpdateProviderInfo)
 		v1.GET("/provider/me", TokenAuthProviderMiddleware(), GetProviderInfo)
+		v1.PUT("/provider/inactive", TokenAuthProviderMiddleware(), InActiveProvider)
+		v1.PUT("/provider/active", TokenAuthProviderMiddleware(), ActiveProvider)
+
 	}
 
 	r.Run(GetPort())
@@ -1306,18 +1307,17 @@ func UpdateProviderData(c *gin.Context) {
 }
 
 func InActiveProvider(c *gin.Context) {
-	// Inactive provider
-	var providerAccount ProviderAccount
-	c.Bind(&providerAccount)
+	providerId := getProviderIdFromToken(c)
 
+	var providerAccount ProviderAccount
 	err := dbmap.SelectOne(&providerAccount,
 		`SELECT provider_id FROM provideraccount WHERE provider_id=$1`,
-		providerAccount.ProviderId)
+		providerId)
 
 	if err == nil {
 		if update := db.QueryRow(`UPDATE provideraccount SET status=$1
 			WHERE provider_id=$2`, 0,
-			providerAccount.ProviderId); update != nil {
+			providerId); update != nil {
 			c.JSON(200, gin.H{"status": "update success"})
 		} else {
 			c.JSON(400, gin.H{"error": "update failed"})
@@ -1329,18 +1329,15 @@ func InActiveProvider(c *gin.Context) {
 }
 
 func ActiveProvider(c *gin.Context) {
-	// Active provider
-	var providerAccount ProviderAccount
-	c.Bind(&providerAccount)
+	providerId := getProviderIdFromToken(c)
 
+	var providerAccount ProviderAccount
 	err := dbmap.SelectOne(&providerAccount, `SELECT provider_id
-		FROM provideraccount WHERE provider_id=$1`,
-		providerAccount.ProviderId)
+		FROM provideraccount WHERE provider_id=$1`, providerId)
 
 	if err == nil {
 		if update := db.QueryRow(`UPDATE provideraccount SET status=$1
-			WHERE provider_id=$2`, 1,
-			providerAccount.ProviderId); update != nil {
+			WHERE provider_id=$2`, 1, providerId); update != nil {
 			c.JSON(200, gin.H{"status": "update success"})
 		} else {
 			c.JSON(400, gin.H{"error": "update failed"})
