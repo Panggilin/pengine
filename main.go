@@ -988,6 +988,7 @@ func GetProvider(c *gin.Context) {
 		"rate_review":     len(providerRating),
 		"rating":          providerBasicInfo.Rating,
 		"status":          providerBasicInfo.Status,
+		"email":           providerBasicInfo.Email,
 	})
 
 }
