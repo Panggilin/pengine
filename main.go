@@ -381,16 +381,17 @@ Longitude
 Distance
 */
 type NearProviderForMap struct {
-	Id        int64   `db:"id" json:"id"`
-	Nama      string  `db:"nama" json:"nama"`
-	JasaId    int64   `db:"jasa_id" json:"jasa_id"`
-	JenisJasa string  `db:"jenis_jasa" json:"jenis_jasa"`
-	Latitude  float64 `db:"latitude" json:"latitude"`
-	Longitude float64 `db:"longitude" json:"longitude"`
-	Distance  float64 `db:"distance" json:"distance"`
-	MinPrice  int32   `db:"min_price" json:"min_price"`
-	MaxPrice  int32   `db:"max_price" json:"max_price"`
-	Rating    float32 `db:"rating" json:"rating"`
+	Id          int64   `db:"id" json:"id"`
+	Nama        string  `db:"nama" json:"nama"`
+	JasaId      int64   `db:"jasa_id" json:"jasa_id"`
+	JenisJasa   string  `db:"jenis_jasa" json:"jenis_jasa"`
+	Latitude    float64 `db:"latitude" json:"latitude"`
+	Longitude   float64 `db:"longitude" json:"longitude"`
+	Distance    float64 `db:"distance" json:"distance"`
+	MinPrice    int32   `db:"min_price" json:"min_price"`
+	MaxPrice    int32   `db:"max_price" json:"max_price"`
+	Rating      float32 `db:"rating" json:"rating"`
+	ProfilePict string  `db:"profile_pict" json:"profile_pict"`
 }
 
 /**
@@ -1017,7 +1018,8 @@ func GetNearProviderForMap(c *gin.Context) {
 		AS distance,
 		CASE WHEN min_price <> 0 THEN min_price ELSE 0 END as min_price,
 		CASE WHEN max_price <> 0 THEN max_price ELSE 0 END as max_price,
-		CASE WHEN rating <> 0 THEN rating ELSE 0 END as rating
+		CASE WHEN rating <> 0 THEN rating ELSE 0 END as rating,
+		CASE WHEN (ppi.profile_pict IS NULL OR ppi.profile_pict = '') THEN '' ELSE ppi.profile_pict END
 		FROM providerlocation pl
 			JOIN providerdata pd on pd.id = pl.provider_id
 			JOIN kategorijasa kj on kj.id = pd.jasa_id
@@ -1033,6 +1035,7 @@ func GetNearProviderForMap(c *gin.Context) {
 					SELECT provider_id, count(*) as count, sum(user_rating) sum_rating
 					FROM providerrating group by provider_id) rating_counter) pr
 			ON pr.provider_id = pd.id
+			JOIN providerprofileimage ppi ON ppi.provider_id = pd.id
 		WHERE earth_distance(ll_to_earth($1, $2),
 		ll_to_earth(pl.latitude, pl.longitude)) <= $3
 		ORDER BY distance ASC`, lat, long, searchDistance)
