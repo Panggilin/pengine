@@ -392,6 +392,7 @@ type NearProviderForMap struct {
 	MaxPrice    int32   `db:"max_price" json:"max_price"`
 	Rating      float32 `db:"rating" json:"rating"`
 	ProfilePict string  `db:"profile_pict" json:"profile_pict"`
+	Status      int8    `db:"status" json:"status"`
 }
 
 /**
@@ -615,14 +616,16 @@ Rating
 Distance
 */
 type ProviderByCat struct {
-	Id        int64   `db:"id" json:"id"`
-	Nama      string  `db:"nama" json:"nama"`
-	Latitude  float64 `db:"latitude" json:"latitude"`
-	Longitude float64 `db:"longitude" json:"longitude"`
-	MinPrice  int32   `db:"min_price" json:"min_price"`
-	MaxPrice  int32   `db:"max_price" json:"max_price"`
-	Rating    float32 `db:"rating" json:"rating"`
-	Distance  float64 `db:"distance" json:"distance"`
+	Id          int64   `db:"id" json:"id"`
+	Nama        string  `db:"nama" json:"nama"`
+	Latitude    float64 `db:"latitude" json:"latitude"`
+	Longitude   float64 `db:"longitude" json:"longitude"`
+	MinPrice    int32   `db:"min_price" json:"min_price"`
+	MaxPrice    int32   `db:"max_price" json:"max_price"`
+	Rating      float32 `db:"rating" json:"rating"`
+	Distance    float64 `db:"distance" json:"distance"`
+	ProfilePict string  `db:"profile_pict" json:"profile_pict"`
+	Status      int8    `db:"status" json:"status"`
 }
 
 /**
@@ -1019,7 +1022,8 @@ func GetNearProviderForMap(c *gin.Context) {
 		CASE WHEN min_price <> 0 THEN min_price ELSE 0 END as min_price,
 		CASE WHEN max_price <> 0 THEN max_price ELSE 0 END as max_price,
 		CASE WHEN rating <> 0 THEN rating ELSE 0 END as rating,
-		CASE WHEN (ppi.profile_pict IS NULL OR ppi.profile_pict = '') THEN '' ELSE ppi.profile_pict END
+		CASE WHEN (ppi.profile_pict IS NULL OR ppi.profile_pict = '') THEN '' ELSE ppi.profile_pict END,
+		pa.status
 		FROM providerlocation pl
 			JOIN providerdata pd on pd.id = pl.provider_id
 			JOIN kategorijasa kj on kj.id = pd.jasa_id
@@ -1036,6 +1040,7 @@ func GetNearProviderForMap(c *gin.Context) {
 					FROM providerrating group by provider_id) rating_counter) pr
 			ON pr.provider_id = pd.id
 			JOIN providerprofileimage ppi ON ppi.provider_id = pd.id
+			JOIN provideraccount pa ON pa.provider_id = pd.id
 		WHERE earth_distance(ll_to_earth($1, $2),
 		ll_to_earth(pl.latitude, pl.longitude)) <= $3
 		ORDER BY distance ASC`, lat, long, searchDistance)
@@ -1092,7 +1097,9 @@ func GetProvidersByCategory(c *gin.Context) {
 		CASE WHEN max_price <> 0 THEN max_price ELSE 0 END as max_price,
 		CASE WHEN rating <> 0 THEN rating ELSE 0 END as rating,
 earth_distance(ll_to_earth($1, $2), ll_to_earth(pl.latitude, pl.longitude))
-AS distance
+AS distance,
+CASE WHEN (ppi.profile_pict IS NULL OR ppi.profile_pict = '') THEN '' ELSE ppi.profile_pict END,
+pa.status
 FROM providerdata pd join providerlocation pl on pl.provider_id = pd.id
 LEFT JOIN (
 	SELECT provider_id, MIN(service_price) as min_price, MAX(service_price)
@@ -1106,6 +1113,8 @@ LEFT JOIN (
 		SELECT provider_id, count(*) as count, sum(user_rating) sum_rating
 		FROM providerrating group by provider_id) rating_counter) pr
 ON pr.provider_id = pd.id
+JOIN providerprofileimage ppi ON ppi.provider_id = pd.id
+JOIN provideraccount pa ON pa.provider_id = pd.id
 WHERE pd.jasa_id=$3
 	AND earth_distance(ll_to_earth($1, $2),
 	ll_to_earth(pl.latitude, pl.longitude)) <= $4
@@ -1124,7 +1133,9 @@ ORDER BY distance ASC;
 		CASE WHEN max_price <> 0 THEN max_price ELSE 0 END as max_price,
 		CASE WHEN rating <> 0 THEN rating ELSE 0 END as rating,
 earth_distance(ll_to_earth($1, $2), ll_to_earth(pl.latitude, pl.longitude))
-AS distance
+AS distance,
+CASE WHEN (ppi.profile_pict IS NULL OR ppi.profile_pict = '') THEN '' ELSE ppi.profile_pict END,
+pa.status
 FROM providerdata pd join providerlocation pl on pl.provider_id = pd.id
 LEFT JOIN (
 	SELECT provider_id, MIN(service_price) as min_price, MAX(service_price)
@@ -1138,6 +1149,8 @@ LEFT JOIN (
 		SELECT provider_id, count(*) as count, sum(user_rating) sum_rating
 		FROM providerrating group by provider_id) rating_counter) pr
 ON pr.provider_id = pd.id
+JOIN providerprofileimage ppi ON ppi.provider_id = pd.id
+JOIN provideraccount pa ON pa.provider_id = pd.id
 WHERE earth_distance(ll_to_earth($1, $2),
 	ll_to_earth(pl.latitude, pl.longitude)) <= $3
 ORDER BY distance ASC;
@@ -1160,11 +1173,14 @@ func GetProvidersByKeyword(c *gin.Context) {
 		// get provider
 		var providerByCat []ProviderByCat
 
-		_, err := dbmap.Select(&providerByCat, `SELECT pd.id, pd.nama, pl.latitude, pl.longitude,
+		_, err := dbmap.Select(&providerByCat,
+			`SELECT pd.id, pd.nama, pl.latitude, pl.longitude,
 		CASE WHEN min_price <> 0 THEN min_price ELSE 0 END as min_price,
 		CASE WHEN max_price <> 0 THEN max_price ELSE 0 END as max_price,
 		CASE WHEN rating <> 0 THEN rating ELSE 0 END as rating,
-		earth_distance(ll_to_earth($1, $2), ll_to_earth(pl.latitude, pl.longitude)) AS distance
+		earth_distance(ll_to_earth($1, $2), ll_to_earth(pl.latitude, pl.longitude)) AS distance,
+		CASE WHEN (ppi.profile_pict IS NULL OR ppi.profile_pict = '') THEN '' ELSE ppi.profile_pict END,
+		pa.status
 		FROM providerdata pd join providerlocation pl on pl.provider_id = pd.id
 		LEFT JOIN (
 			SELECT provider_id, MIN(service_price) as min_price, MAX(service_price)
@@ -1179,6 +1195,8 @@ func GetProvidersByKeyword(c *gin.Context) {
 				FROM providerrating group by provider_id) rating_counter) pr
 		ON pr.provider_id = pd.id
 		LEFT JOIN kategorijasa kj ON kj.id = pd.jasa_id
+		JOIN providerprofileimage ppi ON ppi.provider_id = pd.id
+		JOIN provideraccount pa ON pa.provider_id = pd.id
 		WHERE LOWER(kj.jenis) LIKE LOWER('%' || $3 || '%') OR LOWER(pd.nama) LIKE LOWER('%' || $3 || '%')
 		ORDER BY distance ASC`, postSearchType.Latitude, postSearchType.Longitude, postSearchType.Keyword)
 
