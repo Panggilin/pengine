@@ -1114,7 +1114,7 @@ LEFT JOIN (
 		SELECT provider_id, count(*) as count, sum(user_rating) sum_rating
 		FROM providerrating group by provider_id) rating_counter) pr
 ON pr.provider_id = pd.id
-JOIN providerprofileimage ppi ON ppi.provider_id = pd.id
+LEFT JOIN providerprofileimage ppi ON ppi.provider_id = pd.id
 JOIN provideraccount pa ON pa.provider_id = pd.id
 WHERE pd.jasa_id=$3
 	AND earth_distance(ll_to_earth($1, $2),
@@ -1150,7 +1150,7 @@ LEFT JOIN (
 		SELECT provider_id, count(*) as count, sum(user_rating) sum_rating
 		FROM providerrating group by provider_id) rating_counter) pr
 ON pr.provider_id = pd.id
-JOIN providerprofileimage ppi ON ppi.provider_id = pd.id
+LEFT JOIN providerprofileimage ppi ON ppi.provider_id = pd.id
 JOIN provideraccount pa ON pa.provider_id = pd.id
 WHERE earth_distance(ll_to_earth($1, $2),
 	ll_to_earth(pl.latitude, pl.longitude)) <= $3
@@ -1196,7 +1196,7 @@ func GetProvidersByKeyword(c *gin.Context) {
 				FROM providerrating group by provider_id) rating_counter) pr
 		ON pr.provider_id = pd.id
 		LEFT JOIN kategorijasa kj ON kj.id = pd.jasa_id
-		JOIN providerprofileimage ppi ON ppi.provider_id = pd.id
+		LEFT JOIN providerprofileimage ppi ON ppi.provider_id = pd.id
 		JOIN provideraccount pa ON pa.provider_id = pd.id
 		WHERE LOWER(kj.jenis) LIKE LOWER('%' || $3 || '%') OR LOWER(pd.nama) LIKE LOWER('%' || $3 || '%')
 		ORDER BY distance ASC`, postSearchType.Latitude, postSearchType.Longitude, postSearchType.Keyword)
