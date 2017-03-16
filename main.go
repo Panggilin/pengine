@@ -1993,7 +1993,7 @@ func GetUserOrder(c *gin.Context) {
 			JOIN (	SELECT order_id, MAX(status) as status FROM ordervendorjourney WHERE order_id IN (SELECT id FROM ordervendor WHERE user_id=$1) GROUP BY order_id)
 				as ouj ON ouj.order_id = ov.id
 			LEFT JOIN (SELECT order_id, date as complete_date FROM ordervendorjourney WHERE status=6 OR status=7) as oouj ON oouj.order_id = ov.id
-		WHERE ov.user_id=$1 AND status > $2 ORDER BY ov.id ASC`, userId, query.GreaterThan)
+		WHERE ov.user_id=$1 AND status > $2 ORDER BY ov.id DESC`, userId, query.GreaterThan)
 
 		if err == nil {
 
