@@ -867,6 +867,7 @@ type Promo struct {
 	EndDate    int64  `db:"end_date" json:"end_date"`
 	Position   int8   `db:"position" json:"position"`
 	Active     int8   `db:"active" json:"active"`
+	Target     string `db:"target" json:"target"`
 }
 
 // ========================== FUNC
@@ -2820,9 +2821,9 @@ func PostPromo(c *gin.Context) {
 	var promo Promo
 	c.Bind(&promo)
 
-	if insert := db.QueryRow(`INSERT INTO promo(title, promo_image, start_date, end_date, position, active)
-		VALUES($1, $2, $3, $4, $5, $6) RETURNING id`, promo.Title, promo.PromoImage, promo.StartDate, promo.EndDate,
-		promo.Position, promo.Active); insert != nil {
+	if insert := db.QueryRow(`INSERT INTO promo(title, promo_image, start_date, end_date, position, active, target)
+		VALUES($1, $2, $3, $4, $5, $6, $7) RETURNING id`, promo.Title, promo.PromoImage, promo.StartDate, promo.EndDate,
+		promo.Position, promo.Active, promo.Target); insert != nil {
 		var id int64
 
 		err := insert.Scan(&id)
@@ -2840,7 +2841,8 @@ func PostPromo(c *gin.Context) {
 func GetUserPromo(c *gin.Context) {
 	var promo []Promo
 
-	_, err := dbmap.Select(&promo, `SELECT id, title, promo_image, start_date, end_date, position, active
+	_, err := dbmap.Select(&promo, `SELECT id, title, promo_image, start_date,
+		end_date, position, active, target
 			FROM promo WHERE active=1`)
 
 	if err == nil {
