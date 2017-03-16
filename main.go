@@ -1040,7 +1040,7 @@ func GetNearProviderForMap(c *gin.Context) {
 					SELECT provider_id, count(*) as count, sum(user_rating) sum_rating
 					FROM providerrating group by provider_id) rating_counter) pr
 			ON pr.provider_id = pd.id
-			JOIN providerprofileimage ppi ON ppi.provider_id = pd.id
+			LEFT JOIN providerprofileimage ppi ON ppi.provider_id = pd.id
 			JOIN provideraccount pa ON pa.provider_id = pd.id
 		WHERE earth_distance(ll_to_earth($1, $2),
 		ll_to_earth(pl.latitude, pl.longitude)) <= $3
