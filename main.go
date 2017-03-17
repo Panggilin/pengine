@@ -999,8 +999,9 @@ func GetProvider(c *gin.Context) {
 
 }
 
+// GetNearProviderForMap 	Get all provider that near 2KM from user
 func GetNearProviderForMap(c *gin.Context) {
-	// Get all provider that near 2KM from user
+
 	var lat float64
 	var long float64
 	lat, _ = strconv.ParseFloat(c.Query("lat"), 64)
