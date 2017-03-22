@@ -1390,7 +1390,7 @@ func PostMyLocationProvider(c *gin.Context) {
 		FROM providerlocation WHERE provider_id=$1`,
 		providerLocation.ProviderId)
 
-	log.Printf(err)
+	log.Println(err)
 
 	if (ProviderLocation{} == recProviderLocation) {
 		log.Printf("%s", "Update location")
