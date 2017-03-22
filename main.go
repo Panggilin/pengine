@@ -1222,7 +1222,7 @@ func PostSignInProvider(c *gin.Context) {
 	var recProviderAccount ProviderAccount
 	err := dbmap.SelectOne(&recProviderAccount, `SELECT provider_id,
 		max_distance FROM provideraccount
-		WHERE email=$1 AND password=$2`, providerAccount.Email, providerAccount.Password)
+		WHERE LOWER(email)=LOWER($1) AND password=$2`, providerAccount.Email, providerAccount.Password)
 
 	if err == nil {
 
@@ -1263,7 +1263,7 @@ func PostSignInProvider(c *gin.Context) {
 		c.JSON(200, loginAccount)
 
 	} else {
-		checkErr(err, "Select Failed")
+
 		c.JSON(400, gin.H{"error": "Account not exists"})
 	}
 }
@@ -1309,6 +1309,7 @@ func PostCreateProvider(c *gin.Context) {
 			c.JSON(200, content)
 		} else {
 			checkErr(err, "Insert failed")
+			c.JSON(400, gin.H{"error": "Create provider failed"})
 		}
 	}
 }
@@ -1353,7 +1354,7 @@ func InActiveProvider(c *gin.Context) {
 		}
 
 	} else {
-		checkErr(err, "Select failed")
+		c.JSON(400, gin.H{"error": "update failed"})
 	}
 }
 
@@ -1373,7 +1374,7 @@ func ActiveProvider(c *gin.Context) {
 		}
 
 	} else {
-		checkErr(err, "Select failed")
+		c.JSON(400, gin.H{"error": "select failed"})
 	}
 }
 
@@ -1392,7 +1393,7 @@ func PostMyLocationProvider(c *gin.Context) {
 
 	log.Println(err)
 
-	if (ProviderLocation{} == recProviderLocation) {
+	if (ProviderLocation{} != recProviderLocation) {
 		log.Printf("%s", "Update location")
 		// Already exists
 		if update := db.QueryRow(`UPDATE providerlocation SET latitude=$1,
@@ -1454,7 +1455,8 @@ func GetProviderPriceList(c *gin.Context) {
 	if err == nil {
 		c.JSON(200, gin.H{"data": providerPriceList})
 	} else {
-		checkErr(err, "Select failed")
+
+		c.JSON(400, gin.H{"error": "select failed"})
 	}
 }
 
@@ -1470,7 +1472,7 @@ func GetProviderPrice(c *gin.Context) {
 	if err == nil {
 		c.JSON(200, gin.H{"data": providerPrice})
 	} else {
-		checkErr(err, "Select failed")
+		c.JSON(400, gin.H{"error": "select failed"})
 	}
 }
 
@@ -1524,7 +1526,7 @@ func PostAddedRating(c *gin.Context) {
 		}
 
 	} else {
-		checkErr(errProvider, "Select failed")
+		c.JSON(400, gin.H{"error": "select failed"})
 	}
 }
 
@@ -1538,7 +1540,7 @@ func GetProviderRating(c *gin.Context) {
 	if err == nil {
 		c.JSON(200, gin.H{"data": providerRating})
 	} else {
-		checkErr(err, "Select failed")
+		c.JSON(400, gin.H{"error": "select failed"})
 	}
 }
 
@@ -1552,7 +1554,8 @@ func GetProviderRatingProvider(c *gin.Context) {
 	if err == nil {
 		c.JSON(200, gin.H{"data": providerRating})
 	} else {
-		checkErr(err, "Select failed")
+
+		c.JSON(400, gin.H{"error": "select failed"})
 	}
 }
 
@@ -1591,9 +1594,7 @@ func GetProviderQuickInfo(c *gin.Context) {
 			"count_review": len(providerRating),
 		})
 	} else {
-		checkErr(errPrice, "Select price failed")
-		checkErr(errOrderList, "Select order list failed")
-		checkErr(errRating, "Select rating failed")
+		c.JSON(400, gin.H{"error": "select failed"})
 	}
 }
 
@@ -1650,7 +1651,7 @@ func UpdateProviderRating(c *gin.Context) {
 			c.JSON(200, gin.H{"status": "update success"})
 		}
 	} else {
-		checkErr(err, "Select failed")
+		c.JSON(400, gin.H{"error": "select failed"})
 	}
 }
 
@@ -1700,7 +1701,7 @@ func GetListImageGallery(c *gin.Context) {
 	if err == nil {
 		c.JSON(200, gin.H{"data": providerGallery})
 	} else {
-		checkErr(err, "Select failed")
+		c.JSON(400, gin.H{"error": "select failed"})
 	}
 }
 
@@ -1715,7 +1716,7 @@ func GetProfileProvider(c *gin.Context) {
 	if err == nil {
 		c.JSON(200, profileProvider)
 	} else {
-		checkErr(err, "Select failed")
+		c.JSON(400, gin.H{"error": "select failed"})
 	}
 }
 
@@ -1945,7 +1946,7 @@ func PostNewOrder(c *gin.Context) {
 
 				c.JSON(200, gin.H{"status": "Success order", "order_id": orderId})
 			} else {
-				checkErr(err, "Insert transaction failed")
+				c.JSON(400, gin.H{"error": "insert failed"})
 			}
 		}
 	}
@@ -1981,7 +1982,8 @@ func GetUserOrder(c *gin.Context) {
 
 			c.JSON(200, gin.H{"data": orderItemList})
 		} else {
-			checkErr(err, "Select failed")
+			c.JSON(400, gin.H{"error": "select failed"})
+
 		}
 	} else if query.GreaterThan > 0 {
 		_, err := dbmap.Select(&orderItemList, `SELECT ov.id, ov.destination, ov.destination_lat as latitude, ov.destination_long as longitude, order_date,
@@ -2005,7 +2007,7 @@ func GetUserOrder(c *gin.Context) {
 
 			c.JSON(200, gin.H{"data": orderItemList})
 		} else {
-			checkErr(err, "Select failed")
+			c.JSON(400, gin.H{"error": "select failed"})
 		}
 	} else {
 		_, err := dbmap.Select(&orderItemList, `SELECT ov.id, ov.destination, ov.destination_lat as latitude, ov.destination_long as longitude, order_date,
@@ -2029,7 +2031,7 @@ func GetUserOrder(c *gin.Context) {
 
 			c.JSON(200, gin.H{"data": orderItemList})
 		} else {
-			checkErr(err, "Select failed")
+			c.JSON(400, gin.H{"error": "select failed"})
 		}
 	}
 }
@@ -2180,7 +2182,7 @@ func sendNotificationToCustomer(orderId int64, status int64) {
 		}
 
 	} else {
-		checkErr(err, "Select failed")
+		log.Println("Send notif failed")
 	}
 }
 
@@ -2226,7 +2228,7 @@ func sendNotificationToProvider(orderId int64, status int64) {
 		}
 
 	} else {
-		checkErr(err, "Select failed")
+		log.Println("Send notif failed")
 	}
 }
 
@@ -2669,7 +2671,7 @@ func GetProviderOrder(c *gin.Context) {
 		if err == nil {
 			c.JSON(200, gin.H{"data": orderItemList})
 		} else {
-			checkErr(err, "Select failed")
+			c.JSON(400, gin.H{"error": "select failed"})
 		}
 	} else if query.GreaterThan > 0 {
 		_, err := dbmap.Select(&orderItemList, `SELECT ov.id, ov.destination, ov.destination_lat as latitude, ov.destination_long as longitude, order_date,
@@ -2697,10 +2699,10 @@ func GetProviderOrder(c *gin.Context) {
 			if err == nil {
 				c.JSON(200, gin.H{"data": orderItemList})
 			} else {
-				checkErr(err, "Select failed")
+				c.JSON(400, gin.H{"error": "select failed"})
 			}
 		} else {
-			checkErr(err, "Select failed")
+			c.JSON(400, gin.H{"error": "select failed"})
 		}
 	} else {
 		_, err := dbmap.Select(&orderItemList, `SELECT ov.id, ov.destination, ov.destination_lat as latitude, ov.destination_long as longitude, order_date,
@@ -2728,10 +2730,10 @@ func GetProviderOrder(c *gin.Context) {
 			if err == nil {
 				c.JSON(200, gin.H{"data": orderItemList})
 			} else {
-				checkErr(err, "Select failed")
+				c.JSON(400, gin.H{"error": "select failed"})
 			}
 		} else {
-			checkErr(err, "Select failed")
+			c.JSON(400, gin.H{"error": "select failed"})
 		}
 	}
 }
@@ -2777,8 +2779,7 @@ func GetProviderOrderDetail(c *gin.Context) {
 		c.JSON(200, gin.H{"order_info": orderItemList, "orders": orderDetail})
 
 	} else {
-		checkErr(err, "select info failed")
-		checkErr(errOrderDetailItem, "select detail failed")
+		c.JSON(400, gin.H{"error": "select failed"})
 	}
 }
 
@@ -2940,7 +2941,7 @@ func GetProviderInfo(c *gin.Context) {
 		WHERE pd.id=$1`, providerId)
 
 	if errBasicInfo != nil {
-		checkErr(errBasicInfo, "Select basic info failed")
+		c.JSON(400, gin.H{"error": "select failed"})
 	}
 
 	// Get profile pict
