@@ -1390,7 +1390,9 @@ func PostMyLocationProvider(c *gin.Context) {
 		FROM providerlocation WHERE provider_id=$1`,
 		providerLocation.ProviderId)
 
-	if err != nil {
+	log.Printf(err)
+
+	if (ProviderLocation{} == recProviderLocation) {
 		log.Printf("%s", "Update location")
 		// Already exists
 		if update := db.QueryRow(`UPDATE providerlocation SET latitude=$1,
