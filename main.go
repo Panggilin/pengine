@@ -1387,8 +1387,8 @@ func PostMyLocationProvider(c *gin.Context) {
 	c.Bind(&providerLocation)
 
 	var recProviderLocation ProviderLocation
-	err := dbmap.SelectOne(&recProviderLocation, `SELECT provider_id
-		FROM providerlocation WHERE provider_id=$1`,
+	err := dbmap.SelectOne(&recProviderLocation, `SELECT * FROM providerlocation
+		WHERE provider_id=$1`,
 		providerLocation.ProviderId)
 
 	log.Println(err)
