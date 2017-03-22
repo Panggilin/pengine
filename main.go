@@ -1391,6 +1391,7 @@ func PostMyLocationProvider(c *gin.Context) {
 		providerLocation.ProviderId)
 
 	if err != nil {
+		log.Printf("%s", "Update location")
 		// Already exists
 		if update := db.QueryRow(`UPDATE providerlocation SET latitude=$1,
 			longitude=$2 WHERE provider_id=$3`,
@@ -1399,6 +1400,7 @@ func PostMyLocationProvider(c *gin.Context) {
 			c.JSON(200, gin.H{"status": "success updated my location"})
 		}
 	} else {
+		log.Printf("%s", "Insert location")
 		// Not exists
 		if insert := db.QueryRow(`INSERT INTO
 			providerlocation(provider_id, latitude, longitude)
