@@ -997,6 +997,7 @@ func GetProvider(c *gin.Context) {
 		"rating":          providerBasicInfo.Rating,
 		"status":          providerBasicInfo.Status,
 		"email":           providerBasicInfo.Email,
+		"max_distance":    providerBasicInfo.MaxDistance,
 	})
 
 }
