@@ -487,6 +487,7 @@ type ProviderBasicInfo struct {
 	PhoneNumber    string  `db:"phone_number" json:"phone_number"`
 	Rating         float32 `db:"rating" json:"rating"`
 	Status         int8    `db:"status" json:"status"`
+	MaxDistance    int64   `db:"max_distance" json:"max_distance"`
 }
 
 /**
@@ -888,7 +889,8 @@ func GetProvider(c *gin.Context) {
 		CASE WHEN (pd.additional_info IS NULL OR pd.additional_info = '') THEN '' ELSE pd.additional_info END,
 		CASE WHEN (pr.rating <> 0) THEN pr.rating ELSE 0 END as rating,
 		pa.status,
-		pd.email
+		pd.email,
+		pa.max_distance
 		FROM providerdata pd
 		JOIN kategorijasa kj ON kj.id = pd.jasa_id
 		JOIN provideraccount pa ON pa.provider_id = pd.id
