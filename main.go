@@ -2079,7 +2079,7 @@ func PostNewOrderJourney(c *gin.Context) {
 
 		insert.Scan(&journeyId)
 
-		orderCancel := OrderCancel{
+		orderCancel := &OrderCancel{
 			JourneyId:  journeyId,
 			OrderId:    orderVendorJourney.OrderId,
 			CanceledBy: 2,
@@ -2109,7 +2109,7 @@ func PostUserNewOrderJourney(c *gin.Context) {
 
 		insert.Scan(&journeyId)
 
-		orderCancel := OrderCancel{
+		orderCancel := &OrderCancel{
 			JourneyId:  journeyId,
 			OrderId:    orderVendorJourney.OrderId,
 			CanceledBy: 1,
@@ -2793,7 +2793,7 @@ func PostOrderCancel(c *gin.Context) {
 	}
 }
 
-func handleCancelOrder(c *gin.Context, orderCancel OrderCancel) {
+func handleCancelOrder(c *gin.Context, orderCancel *OrderCancel) {
 	// check if order_id was canceled or not
 	var checkCancelOrder OrderCancel
 	err := dbmap.SelectOne(&checkCancelOrder, "SELECT id FROM ordercancel WHERE order_id=$1", orderCancel.OrderId)
