@@ -184,6 +184,7 @@ func main() {
 		v1.GET("/provider/me", TokenAuthProviderMiddleware(), GetProviderInfo)
 		v1.PUT("/provider/inactive", TokenAuthProviderMiddleware(), InActiveProvider)
 		v1.PUT("/provider/active", TokenAuthProviderMiddleware(), ActiveProvider)
+		v1.DELETE("/provider/image/:image_id", TokenAuthProviderMiddleware(), DeleteProviderImageGallery)
 
 	}
 
@@ -2986,4 +2987,14 @@ func GetProviderInfo(c *gin.Context) {
 		"profile_bg":      profileBgUrl,
 		"gallery":         providerGallery,
 	})
+}
+
+func DeleteProviderImageGallery(c *gin.Context) {
+	providerID := getProviderIdFromToken(c)
+	imageID := c.Params.ByName("image_id")
+
+	if delete := db.QueryRow(`DELETE FROM providergallery
+	WHERE id=$1 AND provider_id=$2`, imageID, providerID); delete != nil {
+		c.JSON(200, gin.H{"status": "Delete success"})
+	}
 }
