@@ -2950,18 +2950,14 @@ func GetProviderInfo(c *gin.Context) {
 	// Get profile pict
 	var profileProvider ProviderProfileImage
 	errProfilePict := dbmap.SelectOne(&profileProvider,
-		`SELECT * FROM providerprofileimage WHERE provider_id=$1`,
+		`SELECT id, provider_id,
+		CASE WHEN (profile_pict is NULL OR profile_pict = '') THEN '' ELSE profile_pict END,
+		CASE WHEN (profile_bg is NULL OR profile_bg = '') THEN '' ELSE profile_bg END,
+		FROM providerprofileimage WHERE provider_id=$1`,
 		providerId)
 
-	var profilePictUrl string
-	var profileBgUrl string
-
 	if errProfilePict != nil {
-		profilePictUrl = ""
-		profileBgUrl = ""
-	} else {
-		profilePictUrl = profileProvider.ProfilePict
-		profileBgUrl = profileProvider.ProfileBg
+		log.Println(errProfilePict)
 	}
 
 	// get images gallery
@@ -2983,8 +2979,8 @@ func GetProviderInfo(c *gin.Context) {
 		"additional_info": providerBasicInfo.AdditionalInfo,
 		"email":           providerBasicInfo.Email,
 		"phone_number":    providerBasicInfo.PhoneNumber,
-		"profile_pict":    profilePictUrl,
-		"profile_bg":      profileBgUrl,
+		"profile_pict":    profileProvider.ProfilePict,
+		"profile_bg":      profileProvider.ProfileBg,
 		"gallery":         providerGallery,
 	})
 }
