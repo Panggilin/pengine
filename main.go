@@ -2952,7 +2952,7 @@ func GetProviderInfo(c *gin.Context) {
 	errProfilePict := dbmap.SelectOne(&profileProvider,
 		`SELECT id, provider_id,
 		CASE WHEN (profile_pict is NULL OR profile_pict = '') THEN '' ELSE profile_pict END,
-		CASE WHEN (profile_bg is NULL OR profile_bg = '') THEN '' ELSE profile_bg END,
+		CASE WHEN (profile_bg is NULL OR profile_bg = '') THEN '' ELSE profile_bg END
 		FROM providerprofileimage WHERE provider_id=$1`,
 		providerId)
 
