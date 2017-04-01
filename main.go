@@ -1738,7 +1738,15 @@ func PostImageProfileProvider(c *gin.Context) {
 
 	log.Println(err)
 
-	if recProfile.Id == 0 {
+	if recProfile.Id > 0 {
+		log.Println("Update first")
+		if update := db.QueryRow(`UPDATE providerprofileimage
+					SET profile_pict=$1 WHERE provider_id=$2`,
+			providerGallery.Image,
+			providerId); update != nil {
+			c.JSON(200, gin.H{"status": "Update success"})
+		}
+	} else {
 		log.Println("Insert new")
 		if insert := db.QueryRow(`INSERT INTO
 				providerprofileimage(provider_id, profile_pict)
@@ -1746,14 +1754,6 @@ func PostImageProfileProvider(c *gin.Context) {
 			providerId,
 			providerGallery.Image); insert != nil {
 			c.JSON(200, gin.H{"status": "Success insert new profile pict"})
-		}
-	} else {
-		log.Println("Update first")
-		if update := db.QueryRow(`UPDATE providerprofileimage
-					SET profile_pict=$1 WHERE provider_id=$2`,
-			providerGallery.Image,
-			providerId); update != nil {
-			c.JSON(200, gin.H{"status": "Update success"})
 		}
 	}
 }
