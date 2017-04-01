@@ -2079,14 +2079,14 @@ func PostNewOrderJourney(c *gin.Context) {
 
 		insert.Scan(&journeyId)
 
-		orderCancel := &OrderCancel{
+		orderCancel := OrderCancel{
 			JourneyId:  journeyId,
 			OrderId:    orderVendorJourney.OrderId,
 			CanceledBy: 2,
 			Message:    orderVendorJourney.Message,
 		}
 
-		handleCancelOrder(c, orderCancel)
+		handleCancelOrder(c, &orderCancel)
 
 		sendNotificationToCustomer(orderVendorJourney.OrderId, orderVendorJourney.Status)
 
@@ -2109,14 +2109,14 @@ func PostUserNewOrderJourney(c *gin.Context) {
 
 		insert.Scan(&journeyId)
 
-		orderCancel := &OrderCancel{
+		orderCancel := OrderCancel{
 			JourneyId:  journeyId,
 			OrderId:    orderVendorJourney.OrderId,
 			CanceledBy: 1,
 			Message:    orderVendorJourney.Message,
 		}
 
-		handleCancelOrder(c, orderCancel)
+		handleCancelOrder(c, &orderCancel)
 
 		sendNotificationToProvider(orderVendorJourney.OrderId, orderVendorJourney.Status)
 
