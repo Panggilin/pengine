@@ -1730,7 +1730,7 @@ func PostImageProfileProvider(c *gin.Context) {
 	c.Bind(&providerGallery)
 
 	var recProfile ProviderProfileImage
-	err := dbmap.SelectOne(&recProfile, `SELECT
+	err := dbmap.SelectOne(&recProfile, `SELECT id, provider_id,
 		CASE WHEN (profile_pict IS NULL OR profile_pict = '') THEN '' ELSE profile_pict END,
 			CASE WHEN (profile_bg IS NULL OR profile_bg = '') THEN '' ELSE profile_bg END
 			FROM providerprofileimage
@@ -1765,7 +1765,7 @@ func PostImageBGProvider(c *gin.Context) {
 	c.Bind(&providerGallery)
 
 	var recProfile ProviderProfileImage
-	err := dbmap.SelectOne(&recProfile, `SELECT
+	err := dbmap.SelectOne(&recProfile, `SELECT id, provider_id,
 		CASE WHEN (profile_pict IS NULL OR profile_pict = '') THEN '' ELSE profile_pict END,
 			CASE WHEN (profile_bg IS NULL OR profile_bg = '') THEN '' ELSE profile_bg END
 			FROM providerprofileimage
@@ -1773,7 +1773,15 @@ func PostImageBGProvider(c *gin.Context) {
 
 	log.Println(err)
 
-	if recProfile.Id == 0 {
+	if recProfile.Id > 0 {
+		log.Println("Update second")
+		if update := db.QueryRow(`UPDATE providerprofileimage
+					SET profile_bg=$1 WHERE provider_id=$2`,
+			providerGallery.Image,
+			providerId); update != nil {
+			c.JSON(200, gin.H{"status": "Update success"})
+		}
+	} else {
 		log.Println("Insert new")
 		if insert := db.QueryRow(`INSERT INTO
 				providerprofileimage(provider_id, profile_bg)
@@ -1781,14 +1789,6 @@ func PostImageBGProvider(c *gin.Context) {
 			providerId,
 			providerGallery.Image); insert != nil {
 			c.JSON(200, gin.H{"status": "Success insert new profile pict"})
-		}
-	} else {
-		log.Println("Update second")
-		if update := db.QueryRow(`UPDATE providerprofileimage
-					SET profile_bg=$1 WHERE provider_id=$2`,
-			providerGallery.Image,
-			providerId); update != nil {
-			c.JSON(200, gin.H{"status": "Update success"})
 		}
 	}
 }
