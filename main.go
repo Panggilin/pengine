@@ -2116,7 +2116,9 @@ func PostUserNewOrderJourney(c *gin.Context) {
 		var checkCancelOrder OrderCancel
 		err := dbmap.SelectOne(&checkCancelOrder, "SELECT id FROM ordercancel WHERE order_id=$1", orderVendorJourney.OrderId)
 
-		if err != nil {
+		log.Println(err)
+
+		if checkCancelOrder.Id == 0 {
 			log.Println("User cancel order")
 			db.QueryRow(`INSERT INTO ordercancel(journey_id, order_id, canceled_by, message)
 				VALUES($1, $2, $3, $4)`, journeyId, orderVendorJourney.OrderId,
