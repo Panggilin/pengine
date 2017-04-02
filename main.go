@@ -157,6 +157,7 @@ func main() {
 		v1.GET("/user/me", TokenAuthUserMiddleware(), GetUserProfile)
 		v1.POST("/user/order/cancel", TokenAuthUserMiddleware(), PostOrderCancel)
 		v1.POST("/user/order/status", TokenAuthUserMiddleware(), PostUserNewOrderJourney)
+		v1.POST("/user/cancel/order", TokenAuthUserMiddleware(), PostUserNewOrderJourney)
 		v1.GET("/user/promo", TokenAuthUserMiddleware(), GetUserPromo)
 
 		v1.POST("/provider/mylocation", TokenAuthProviderMiddleware(), PostMyLocationProvider)
