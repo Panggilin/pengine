@@ -2068,6 +2068,8 @@ func GetOrderDetail(c *gin.Context) {
 }
 
 func PostNewOrderJourney(c *gin.Context) {
+	log.Println("Provider create new order journey")
+
 	var orderVendorJourney OrderVendorJourney
 	c.Bind(&orderVendorJourney)
 
@@ -2083,6 +2085,7 @@ func PostNewOrderJourney(c *gin.Context) {
 		err := dbmap.SelectOne(&checkCancelOrder, "SELECT id FROM ordercancel WHERE order_id=$1", orderVendorJourney.OrderId)
 
 		if err != nil {
+			log.Println("Provider create new order cancel")
 			db.QueryRow(`INSERT INTO ordercancel(journey_id, order_id, canceled_by, message)
 			 	VALUES($1, $2, $3, $4)`, journeyId, orderVendorJourney.OrderId,
 				2, orderVendorJourney.Message)
@@ -2098,6 +2101,7 @@ func PostNewOrderJourney(c *gin.Context) {
 }
 
 func PostUserNewOrderJourney(c *gin.Context) {
+	log.Println("User create new order journey")
 	var orderVendorJourney OrderVendorJourney
 	c.Bind(&orderVendorJourney)
 
@@ -2113,6 +2117,7 @@ func PostUserNewOrderJourney(c *gin.Context) {
 		err := dbmap.SelectOne(&checkCancelOrder, "SELECT id FROM ordercancel WHERE order_id=$1", orderVendorJourney.OrderId)
 
 		if err != nil {
+			log.Println("User cancel order")
 			db.QueryRow(`INSERT INTO ordercancel(journey_id, order_id, canceled_by, message)
 				VALUES($1, $2, $3, $4)`, journeyId, orderVendorJourney.OrderId,
 				1, orderVendorJourney.Message)
