@@ -2079,14 +2079,14 @@ func PostNewOrderJourney(c *gin.Context) {
 
 		insert.Scan(&journeyId)
 
-		orderCancel := OrderCancel{
-			JourneyId:  journeyId,
-			OrderId:    orderVendorJourney.OrderId,
-			CanceledBy: 2,
-			Message:    orderVendorJourney.Message,
-		}
+		var checkCancelOrder OrderCancel
+		err := dbmap.SelectOne(&checkCancelOrder, "SELECT id FROM ordercancel WHERE order_id=$1", orderVendorJourney.OrderId)
 
-		handleCancelOrder(c, &orderCancel)
+		if err != nil {
+			db.QueryRow(`INSERT INTO ordercancel(journey_id, order_id, canceled_by, message)
+			 	VALUES($1, $2, $3, $4)`, journeyId, orderVendorJourney.OrderId,
+				2, orderVendorJourney.Message)
+		}
 
 		sendNotificationToCustomer(orderVendorJourney.OrderId, orderVendorJourney.Status)
 
@@ -2109,14 +2109,14 @@ func PostUserNewOrderJourney(c *gin.Context) {
 
 		insert.Scan(&journeyId)
 
-		orderCancel := OrderCancel{
-			JourneyId:  journeyId,
-			OrderId:    orderVendorJourney.OrderId,
-			CanceledBy: 1,
-			Message:    orderVendorJourney.Message,
-		}
+		var checkCancelOrder OrderCancel
+		err := dbmap.SelectOne(&checkCancelOrder, "SELECT id FROM ordercancel WHERE order_id=$1", orderVendorJourney.OrderId)
 
-		handleCancelOrder(c, &orderCancel)
+		if err != nil {
+			db.QueryRow(`INSERT INTO ordercancel(journey_id, order_id, canceled_by, message)
+				VALUES($1, $2, $3, $4)`, journeyId, orderVendorJourney.OrderId,
+				1, orderVendorJourney.Message)
+		}
 
 		sendNotificationToProvider(orderVendorJourney.OrderId, orderVendorJourney.Status)
 
@@ -2795,14 +2795,7 @@ func PostOrderCancel(c *gin.Context) {
 
 func handleCancelOrder(c *gin.Context, orderCancel *OrderCancel) {
 	// check if order_id was canceled or not
-	var checkCancelOrder OrderCancel
-	err := dbmap.SelectOne(&checkCancelOrder, "SELECT id FROM ordercancel WHERE order_id=$1", orderCancel.OrderId)
 
-	if err != nil {
-		db.QueryRow(`INSERT INTO ordercancel(journey_id, order_id, canceled_by, message)
-		 	VALUES($1, $2, $3, $4)`, orderCancel.JourneyId, orderCancel.OrderId,
-			orderCancel.CanceledBy, orderCancel.Message)
-	}
 }
 
 func PostPromo(c *gin.Context) {
