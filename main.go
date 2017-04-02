@@ -2114,11 +2114,12 @@ func PostUserNewOrderJourney(c *gin.Context) {
 		insert.Scan(&journeyId)
 
 		log.Println("User cancel order")
-		db.QueryRow(`INSERT INTO ordercancel(journey_id, order_id, canceled_by, message)
+		if insertCancel := db.QueryRow(`INSERT INTO ordercancel(journey_id, order_id, canceled_by, message)
 			VALUES($1, $2, $3, $4)`, journeyId, orderVendorJourney.OrderId,
-			1, orderVendorJourney.Message)
-
-		sendNotificationToProvider(orderVendorJourney.OrderId, orderVendorJourney.Status)
+			1, orderVendorJourney.Message); insertCancel != nil {
+			sendNotificationToProvider(orderVendorJourney.OrderId,
+				orderVendorJourney.Status)
+		}
 
 		c.JSON(200, gin.H{"status": "Pesanan telah dibatalkan"})
 	} else {
