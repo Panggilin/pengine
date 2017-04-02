@@ -2077,18 +2077,20 @@ func PostNewOrderJourney(c *gin.Context) {
 	VALUES($1, $2, $3) RETURNING id`,
 		orderVendorJourney.OrderId, orderVendorJourney.Status, time.Now().Unix()); insert != nil {
 
-		var journeyId int64
+		if orderVendorJourney.Status == 7 {
+			var journeyId int64
 
-		insert.Scan(&journeyId)
+			insert.Scan(&journeyId)
 
-		var checkCancelOrder OrderCancel
-		err := dbmap.SelectOne(&checkCancelOrder, "SELECT id FROM ordercancel WHERE order_id=$1", orderVendorJourney.OrderId)
+			var checkCancelOrder OrderCancel
+			err := dbmap.SelectOne(&checkCancelOrder, "SELECT id FROM ordercancel WHERE order_id=$1", orderVendorJourney.OrderId)
 
-		if err != nil {
-			log.Println("Provider create new order cancel")
-			db.QueryRow(`INSERT INTO ordercancel(journey_id, order_id, canceled_by, message)
-			 	VALUES($1, $2, $3, $4)`, journeyId, orderVendorJourney.OrderId,
-				2, orderVendorJourney.Message)
+			if err != nil {
+				log.Println("Provider create new order cancel")
+				db.QueryRow(`INSERT INTO ordercancel(journey_id, order_id, canceled_by, message)
+			VALUES($1, $2, $3, $4)`, journeyId, orderVendorJourney.OrderId,
+					2, orderVendorJourney.Message)
+			}
 		}
 
 		sendNotificationToCustomer(orderVendorJourney.OrderId, orderVendorJourney.Status)
