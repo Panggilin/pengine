@@ -136,8 +136,10 @@ func main() {
 		v1.POST("/provider/signin", PostSignInProvider)
 		v1.POST("/jasa/create", PostCreateNewJasa)
 		v1.POST("/promo/create", PostPromo)
+		v1.GET("/providers/new", GetNewProviders)
+		v1.GET("/providers/offline", GetOfflineProviders)
+		v1.GET("/providers/online", GetOnlineProviders)
 
-		v1.GET("/providers", TokenAuthUserMiddleware(), GetProviders)
 		v1.GET("/providers/near", TokenAuthUserMiddleware(), GetNearProviderForMap)
 		v1.POST("/providers/search", TokenAuthUserMiddleware(), GetProvidersByKeyword)
 		v1.GET("/provider/jasa/:jasa_id", TokenAuthUserMiddleware(), GetProvidersByCategory)
@@ -281,6 +283,7 @@ Email
 Token
 DeviceId
 Status
+Approved
 MaxDistance
 */
 type ProviderAccount struct {
@@ -290,6 +293,7 @@ type ProviderAccount struct {
 	Password    string `db:"password" json:"password"`
 	DeviceToken string `db:"device_token" json:"device_token"`
 	Status      int64  `db:"status" json:"status"`
+	Approved    int64  `db:"approved" json:"approved"`
 	MaxDistance int64  `db:"max_distance" json:"max_distance"`
 }
 
@@ -874,8 +878,62 @@ type Promo struct {
 
 // ========================== FUNC
 
-func GetProviders(c *gin.Context) {
+// GetNewProviders get all providers by status
+func GetNewProviders(c *gin.Context) {
 	// Get all list providers
+	var providerData []ProviderData
+	_, err := dbmap.Select(&providerData,
+		`SELECT pd.id, pd.nama, pd.email, pd.phone_number,
+		pd.jasa_id, pd.alamat, pd.provinsi, pd.kabupaten, pd.kelurahan,
+		pd.kode_pos, pd.dokumen, pd.join_date
+		FROM providerdata pd
+		JOIN provideraccount pa ON pd.id = pa.provider_id
+		WHERE pa.approved = 0`)
+
+	if err == nil {
+		c.JSON(200, gin.H{"data": providerData})
+	} else {
+		c.JSON(400, gin.H{"error": "No data found"})
+	}
+
+}
+
+// GetOfflineProviders get offline providers
+func GetOfflineProviders(c *gin.Context) {
+	var providerData []ProviderData
+	_, err := dbmap.Select(&providerData,
+		`SELECT pd.id, pd.nama, pd.email, pd.phone_number,
+		pd.jasa_id, pd.alamat, pd.provinsi, pd.kabupaten, pd.kelurahan,
+		pd.kode_pos, pd.dokumen, pd.join_date
+		FROM providerdata pd
+		JOIN provideraccount pa ON pd.id = pa.provider_id
+		WHERE pa.approved = 1 and pa.status=0`)
+
+	if err == nil {
+		c.JSON(200, gin.H{"data": providerData})
+	} else {
+		c.JSON(400, gin.H{"error": "No data found"})
+	}
+}
+
+// GetOnlineProviders get online providers
+func GetOnlineProviders(c *gin.Context) {
+	// Get all list providers
+	var providerData []ProviderData
+	_, err := dbmap.Select(&providerData,
+		`SELECT pd.id, pd.nama, pd.email, pd.phone_number,
+		pd.jasa_id, pd.alamat, pd.provinsi, pd.kabupaten, pd.kelurahan,
+		pd.kode_pos, pd.dokumen, pd.join_date
+		FROM providerdata pd
+		JOIN provideraccount pa ON pd.id = pa.provider_id
+		WHERE pa.approved = 1 and pa.status=1`)
+
+	if err == nil {
+		c.JSON(200, gin.H{"data": providerData})
+	} else {
+		c.JSON(400, gin.H{"error": "No data found"})
+
+	}
 }
 
 func GetProvider(c *gin.Context) {
