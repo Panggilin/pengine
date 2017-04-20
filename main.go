@@ -329,6 +329,21 @@ type ProviderData struct {
 	AdditionalInfo string `db:"additional_info" json:"additional_info"`
 }
 
+type ProviderListTable struct {
+	Id          int64  `db:"id" json:"id"`
+	Nama        string `db:"nama" json:"nama"`
+	Email       string `db:"email" json:"email"`
+	PhoneNumber string `db:"phone_number" json:"phone_number"`
+	JasaId      int64  `db:"jasa_id" json:"jasa_id"`
+	JenisJasa   string `db:"jenis_jasa" json:"jenis_jasa"`
+	Alamat      string `db:"alamat" json:"alamat"`
+	Provinsi    string `db:"provinsi" json:"provinsi"`
+	Kabupaten   string `db:"kabupaten" json:"kabupaten"`
+	Kelurahan   string `db:"kelurahan" json:"kelurahan"`
+	Approved    int64  `db:"approved" json:"approved"`
+	JoinDate    int64  `db:"join_date" json:"join_date"`
+}
+
 /**
 Provider location
 Id
@@ -881,32 +896,35 @@ type Promo struct {
 // GetNewProviders get all providers by status
 func GetNewProviders(c *gin.Context) {
 	// Get all list providers
-	var providerData []ProviderData
+	var providerData []ProviderListTable
 	_, err := dbmap.Select(&providerData,
 		`SELECT pd.id, pd.nama, pd.email, pd.phone_number,
 		pd.jasa_id, pd.alamat, pd.provinsi, pd.kabupaten, pd.kelurahan,
-		pd.kode_pos, pd.dokumen, pd.join_date
+		pd.join_date, kj.jenis as jenis_jasa, pa.approved
 		FROM providerdata pd
 		JOIN provideraccount pa ON pd.id = pa.provider_id
+		JOIN kategorijasa kj ON kj.id = pd.jasa_id
 		WHERE pa.approved = 0`)
 
 	if err == nil {
 		c.JSON(200, gin.H{"data": providerData})
 	} else {
-		c.JSON(400, gin.H{"error": "No data found"})
+		log.Println(err)
+		c.JSON(400, gin.H{"error": "Select failed"})
 	}
 
 }
 
 // GetOfflineProviders get offline providers
 func GetOfflineProviders(c *gin.Context) {
-	var providerData []ProviderData
+	var providerData []ProviderListTable
 	_, err := dbmap.Select(&providerData,
 		`SELECT pd.id, pd.nama, pd.email, pd.phone_number,
 		pd.jasa_id, pd.alamat, pd.provinsi, pd.kabupaten, pd.kelurahan,
-		pd.kode_pos, pd.dokumen, pd.join_date
+		pd.join_date, kj.jenis as jenis_jasa, pa.approved
 		FROM providerdata pd
 		JOIN provideraccount pa ON pd.id = pa.provider_id
+		JOIN kategorijasa kj ON kj.id = pd.jasa_id
 		WHERE pa.approved = 1 and pa.status=0`)
 
 	if err == nil {
@@ -919,13 +937,14 @@ func GetOfflineProviders(c *gin.Context) {
 // GetOnlineProviders get online providers
 func GetOnlineProviders(c *gin.Context) {
 	// Get all list providers
-	var providerData []ProviderData
+	var providerData []ProviderListTable
 	_, err := dbmap.Select(&providerData,
 		`SELECT pd.id, pd.nama, pd.email, pd.phone_number,
 		pd.jasa_id, pd.alamat, pd.provinsi, pd.kabupaten, pd.kelurahan,
-		pd.kode_pos, pd.dokumen, pd.join_date
+		pd.join_date, kj.jenis as jenis_jasa, pa.approved
 		FROM providerdata pd
 		JOIN provideraccount pa ON pd.id = pa.provider_id
+		JOIN kategorijasa kj ON kj.id = pd.jasa_id
 		WHERE pa.approved = 1 and pa.status=1`)
 
 	if err == nil {
