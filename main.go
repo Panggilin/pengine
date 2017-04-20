@@ -341,6 +341,7 @@ type ProviderListTable struct {
 	Kabupaten   string `db:"kabupaten" json:"kabupaten"`
 	Kelurahan   string `db:"kelurahan" json:"kelurahan"`
 	Approved    int64  `db:"approved" json:"approved"`
+	Status      int64  `db:"status" json:"status"`
 	JoinDate    int64  `db:"join_date" json:"join_date"`
 }
 
@@ -900,7 +901,7 @@ func GetNewProviders(c *gin.Context) {
 	_, err := dbmap.Select(&providerData,
 		`SELECT pd.id, pd.nama, pd.email, pd.phone_number,
 		pd.jasa_id, pd.alamat, pd.provinsi, pd.kabupaten, pd.kelurahan,
-		pd.join_date, kj.jenis as jenis_jasa, pa.approved
+		pd.join_date, kj.jenis as jenis_jasa, pa.approved, pa.status
 		FROM providerdata pd
 		JOIN provideraccount pa ON pd.id = pa.provider_id
 		JOIN kategorijasa kj ON kj.id = pd.jasa_id
@@ -921,7 +922,7 @@ func GetOfflineProviders(c *gin.Context) {
 	_, err := dbmap.Select(&providerData,
 		`SELECT pd.id, pd.nama, pd.email, pd.phone_number,
 		pd.jasa_id, pd.alamat, pd.provinsi, pd.kabupaten, pd.kelurahan,
-		pd.join_date, kj.jenis as jenis_jasa, pa.approved
+		pd.join_date, kj.jenis as jenis_jasa, pa.approved, pa.status
 		FROM providerdata pd
 		JOIN provideraccount pa ON pd.id = pa.provider_id
 		JOIN kategorijasa kj ON kj.id = pd.jasa_id
@@ -941,7 +942,7 @@ func GetOnlineProviders(c *gin.Context) {
 	_, err := dbmap.Select(&providerData,
 		`SELECT pd.id, pd.nama, pd.email, pd.phone_number,
 		pd.jasa_id, pd.alamat, pd.provinsi, pd.kabupaten, pd.kelurahan,
-		pd.join_date, kj.jenis as jenis_jasa, pa.approved
+		pd.join_date, kj.jenis as jenis_jasa, pa.approved, pa.status
 		FROM providerdata pd
 		JOIN provideraccount pa ON pd.id = pa.provider_id
 		JOIN kategorijasa kj ON kj.id = pd.jasa_id
