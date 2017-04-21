@@ -513,6 +513,7 @@ type ProviderBasicInfo struct {
 	Status         int8    `db:"status" json:"status"`
 	MaxDistance    int64   `db:"max_distance" json:"max_distance"`
 	Dokumen        string  `db:"dokumen" json:"dokumen"`
+	Approved       int64   `db:"approved" json:"approved"`
 }
 
 /**
@@ -975,7 +976,8 @@ func GetProvider(c *gin.Context) {
 		pd.email,
 		pa.max_distance,
 		pd.dokumen,
-		pd.phone_number
+		pd.phone_number,
+		pa.approved
 		FROM providerdata pd
 		JOIN kategorijasa kj ON kj.id = pd.jasa_id
 		JOIN provideraccount pa ON pa.provider_id = pd.id
@@ -1085,6 +1087,7 @@ func GetProvider(c *gin.Context) {
 		"max_distance":    providerBasicInfo.MaxDistance,
 		"dokumen":         providerBasicInfo.Dokumen,
 		"phone_number":    providerBasicInfo.PhoneNumber,
+		"approved":        providerBasicInfo.Approved,
 	})
 
 }
