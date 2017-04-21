@@ -139,6 +139,8 @@ func main() {
 		v1.GET("/providers/new", GetNewProviders)
 		v1.GET("/providers/offline", GetOfflineProviders)
 		v1.GET("/providers/online", GetOnlineProviders)
+		v1.PUT("/provider/approved/:provider_id", ApprovedProvider)
+		v1.PUT("/provider/disapproved/:provider_id", DisapprovedProvider)
 
 		v1.GET("/providers/near", TokenAuthUserMiddleware(), GetNearProviderForMap)
 		v1.POST("/providers/search", TokenAuthUserMiddleware(), GetProvidersByKeyword)
@@ -1416,6 +1418,52 @@ func UpdateProviderData(c *gin.Context) {
 		}
 	}
 
+}
+
+// ApprovedProvider approved registered provider
+func ApprovedProvider(c *gin.Context) {
+	providerID := c.Params.ByName("provider_id")
+
+	var providerAccount ProviderAccount
+	err := dbmap.SelectOne(&providerAccount,
+		`SELECT provider_id FROM provideraccount WHERE provider_id=$1`,
+		providerID)
+
+	if err == nil {
+		if update := db.QueryRow(`UPDATE provideraccount SET approved=$1
+			WHERE provider_id=$2`, 1,
+			providerID); update != nil {
+			c.JSON(200, gin.H{"status": "update success"})
+		} else {
+			c.JSON(400, gin.H{"error": "update failed"})
+		}
+
+	} else {
+		c.JSON(400, gin.H{"error": "update failed"})
+	}
+}
+
+// DisapprovedProvider disapprove provider
+func DisapprovedProvider(c *gin.Context) {
+	providerID := c.Params.ByName("provider_id")
+
+	var providerAccount ProviderAccount
+	err := dbmap.SelectOne(&providerAccount,
+		`SELECT provider_id FROM provideraccount WHERE provider_id=$1`,
+		providerID)
+
+	if err == nil {
+		if update := db.QueryRow(`UPDATE provideraccount SET approved=$1
+			WHERE provider_id=$2`, 0,
+			providerID); update != nil {
+			c.JSON(200, gin.H{"status": "update success"})
+		} else {
+			c.JSON(400, gin.H{"error": "update failed"})
+		}
+
+	} else {
+		c.JSON(400, gin.H{"error": "update failed"})
+	}
 }
 
 func InActiveProvider(c *gin.Context) {
