@@ -141,6 +141,7 @@ func main() {
 		v1.GET("/providers/online", GetOnlineProviders)
 		v1.PUT("/provider/approved/:provider_id", ApprovedProvider)
 		v1.PUT("/provider/disapproved/:provider_id", DisapprovedProvider)
+		v1.GET("/provider/profile/:id", GetProvider)
 
 		v1.GET("/providers/near", TokenAuthUserMiddleware(), GetNearProviderForMap)
 		v1.POST("/providers/search", TokenAuthUserMiddleware(), GetProvidersByKeyword)
@@ -511,6 +512,7 @@ type ProviderBasicInfo struct {
 	Rating         float32 `db:"rating" json:"rating"`
 	Status         int8    `db:"status" json:"status"`
 	MaxDistance    int64   `db:"max_distance" json:"max_distance"`
+	Dokumen        string  `db:"dokumen" json:"dokumen"`
 }
 
 /**
@@ -971,7 +973,8 @@ func GetProvider(c *gin.Context) {
 		CASE WHEN (pr.rating <> 0) THEN pr.rating ELSE 0 END as rating,
 		pa.status,
 		pd.email,
-		pa.max_distance
+		pa.max_distance,
+		pd.dokumen
 		FROM providerdata pd
 		JOIN kategorijasa kj ON kj.id = pd.jasa_id
 		JOIN provideraccount pa ON pa.provider_id = pd.id
@@ -1079,6 +1082,7 @@ func GetProvider(c *gin.Context) {
 		"status":          providerBasicInfo.Status,
 		"email":           providerBasicInfo.Email,
 		"max_distance":    providerBasicInfo.MaxDistance,
+		"dokumen":         providerBasicInfo.Dokumen,
 	})
 
 }
