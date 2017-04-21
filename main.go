@@ -974,7 +974,8 @@ func GetProvider(c *gin.Context) {
 		pa.status,
 		pd.email,
 		pa.max_distance,
-		pd.dokumen
+		pd.dokumen,
+		pd.phone_number
 		FROM providerdata pd
 		JOIN kategorijasa kj ON kj.id = pd.jasa_id
 		JOIN provideraccount pa ON pa.provider_id = pd.id
@@ -1083,6 +1084,7 @@ func GetProvider(c *gin.Context) {
 		"email":           providerBasicInfo.Email,
 		"max_distance":    providerBasicInfo.MaxDistance,
 		"dokumen":         providerBasicInfo.Dokumen,
+		"phone_number":    providerBasicInfo.PhoneNumber,
 	})
 
 }
