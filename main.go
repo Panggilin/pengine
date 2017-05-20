@@ -135,6 +135,7 @@ func main() {
 		v1.POST("/provider/create", PostCreateProvider)
 		v1.POST("/provider/signin", PostSignInProvider)
 		v1.POST("/jasa/create", PostCreateNewJasa)
+		v1.GET("/jasa/list", GetListJasa)
 		v1.POST("/promo/create", PostPromo)
 		v1.GET("/providers/new", GetNewProviders)
 		v1.GET("/providers/offline", GetOfflineProviders)
@@ -1560,6 +1561,20 @@ func PostCreateNewJasa(c *gin.Context) {
 	if insert := db.QueryRow(`INSERT INTO kategorijasa(jenis) VALUES($1)`,
 		kategoriJasa.Jenis); insert != nil {
 		c.JSON(200, gin.H{"status": "Success create new jenis jasa"})
+	}
+}
+
+// GetListJasa get list of jasa
+func GetListJasa(c *gin.Context) {
+	var categories []KategoriJasa
+
+	_, err := dbmap.Select(&categories,
+		`SELECT id, jenis FROM kategorijasa`)
+
+	if err == nil {
+		c.JSON(200, gin.H{"data": categories})
+	} else {
+		c.JSON(400, gin.H{"error": "Select failed"})
 	}
 }
 
