@@ -347,6 +347,7 @@ type ProviderListTable struct {
 	Approved    int64  `db:"approved" json:"approved"`
 	Status      int64  `db:"status" json:"status"`
 	JoinDate    int64  `db:"join_date" json:"join_date"`
+	Dokumen     string `db:"dokumen" json:"dokumen"`
 }
 
 /**
@@ -907,7 +908,8 @@ func GetNewProviders(c *gin.Context) {
 	_, err := dbmap.Select(&providerData,
 		`SELECT pd.id, pd.nama, pd.email, pd.phone_number,
 		pd.jasa_id, pd.alamat, pd.provinsi, pd.kabupaten, pd.kelurahan,
-		pd.join_date, kj.jenis as jenis_jasa, pa.approved, pa.status
+		pd.join_date, kj.jenis as jenis_jasa, pa.approved, pa.status,
+		pd.dokumen as dokumen
 		FROM providerdata pd
 		JOIN provideraccount pa ON pd.id = pa.provider_id
 		JOIN kategorijasa kj ON kj.id = pd.jasa_id
